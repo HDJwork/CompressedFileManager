@@ -24,18 +24,18 @@ BOOL MINIZ_LIB_Read(PTR* _result, const char* buff)
 	*_result = reinterpret_cast<PTR> (& result);
 	mz_zip_archive archive;
 	memset(&archive, 0, sizeof(mz_zip_archive));
-	//if (!mz_zip_reader_init_file(&archive, buff, 0))
-	//{
-	//	result.errorcode = ERROR_READER_INIT_FAIL;
-	//	return false;
-	//}
-	mz_zip_reader_init_file(&archive, buff, 0);
+	if (!mz_zip_reader_init_file(&archive, buff, 0))
+	{
+		result.errorcode = ERROR_READER_INIT_FAIL;
+		return false;
+	}
+//	mz_zip_reader_init_file(&archive, buff, 0);
 
 	result.count = mz_zip_reader_get_num_files(&archive);
 	for (int i = 0; i < result.count; ++i)
 	{
 		mz_zip_archive_file_stat fileStat;
-		if (mz_zip_reader_file_stat(&archive, i, &fileStat))
+		if (!mz_zip_reader_file_stat(&archive, i, &fileStat))
 		{
 			result.errorcode = ERROR_READER_FILESTAT_INIT_FAIL;
 			return false;

@@ -1,9 +1,9 @@
+#include<windows.h>
 #include"API.h"
 #include"miniz-3.0.2/miniz.h"
 
 #include<string>
 #include<vector>
-
 enum eErrorCode
 {
 	ERROR_NONE = 0,
@@ -19,6 +19,27 @@ struct OutputData_Read {
 	int count;
 	std::vector<std::string> fileList;
 };
+
+std::string multibyte_to_utf8(const std::string& str)
+{
+	int nLen = static_cast<int>(str.size());
+	wchar_t warr[256];
+	MultiByteToWideChar(CP_ACP, 0, (LPCSTR)str.c_str(), -1, warr, 256);
+	char carr[256];
+	memset(carr, '\0', sizeof(carr));
+	WideCharToMultiByte(CP_UTF8, 0, warr, -1, carr, 256, NULL, NULL);
+	return carr;
+}
+std::string utf8_to_multibyte(const std::string& str)
+{
+	wchar_t warr[256];
+	int nLen = static_cast<int>(str.size());
+	memset(warr, '\0', sizeof(warr));
+	MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, warr, 256);
+	char carr[256];    memset(carr, '\0', sizeof(carr));
+	WideCharToMultiByte(CP_ACP, 0, warr, -1, carr, 256, NULL, NULL);    return carr;
+}
+
 
 BOOL MINIZ_LIB_Read(PTR* _result, const char* buff)
 {
@@ -84,8 +105,30 @@ BOOL MINIZ_LIB_Read_Result_GetFileName(PTR* _result, int index, char* buff, int 
 		result.errorcode = ERROR_READER_RESULT_GET_FILENAME_BUFFER_IS_SMALL;
 		return false;
 	}
+
 	strcpy_s(buff, buffCount, target.c_str());
 	return true;
+}
+BOOL MINIZ_LIB_Read_Result_GetFileName_UTF8(PTR* _result, int index, char* buff, int buffCount)
+{
+	OutputData_Read& result = *reinterpret_cast<OutputData_Read*>(*_result);
+	if (index >= result.fileList.size())
+	{
+		result.errorcode = ERROR_READER_RESULT_GET_FILENAME_INDEX_OUT_OF_RANGE;
+		return false;
+	}
+	auto& target = result.fileList[index];
+	std::string str = target;
+	str = multibyte_to_utf8(str);
+	if (target.size() >= buffCount)
+	{
+		result.errorcode = ERROR_READER_RESULT_GET_FILENAME_BUFFER_IS_SMALL;
+		return false;
+	}
+
+	strcpy_s(buff, buffCount, str.c_str());
+	return true;
+
 }
 
 void MINIZ_LIB_Read_Result_Release(PTR* _result)

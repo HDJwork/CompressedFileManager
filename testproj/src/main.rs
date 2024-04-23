@@ -85,17 +85,22 @@ fn main() {
     type FnType_MINIZ_LIB_Read_Result_GetCount = unsafe extern "stdcall" fn(result: C_PTR) -> ffi::c_int;
     let fn_MINIZ_LIB_Read_Result_GetCount: FnType_MINIZ_LIB_Read_Result_GetCount = unsafe {getFunction(dll_handle,funcName).unwrap()};
 
-    let funcName="MINIZ_LIB_Read_Result_GetFileName";
-    type FnType_MINIZ_LIB_Read_Result_GetFileName = unsafe extern "stdcall" fn(result: C_PTR, index: ffi::c_int, buff:* const ffi::c_char, buffCount: ffi::c_int) -> C_BOOL;
-    let fn_MINIZ_LIB_Read_Result_GetFileName: FnType_MINIZ_LIB_Read_Result_GetFileName = unsafe {getFunction(dll_handle,funcName).unwrap()};
+    //let funcName="MINIZ_LIB_Read_Result_GetFileName";
+    //type FnType_MINIZ_LIB_Read_Result_GetFileName = unsafe extern "stdcall" fn(result: C_PTR, index: ffi::c_int, buff:* const ffi::c_char, buffCount: ffi::c_int) -> C_BOOL;
+    //let fn_MINIZ_LIB_Read_Result_GetFileName: FnType_MINIZ_LIB_Read_Result_GetFileName = unsafe {getFunction(dll_handle,funcName).unwrap()};
     
+    let funcName="MINIZ_LIB_Read_Result_GetFileName_UTF8";
+    type FnType_MINIZ_LIB_Read_Result_GetFileName_UTF8 = unsafe extern "stdcall" fn(result: C_PTR, index: ffi::c_int, buff:* const ffi::c_char, buffCount: ffi::c_int) -> C_BOOL;
+    let fn_MINIZ_LIB_Read_Result_GetFileName_UTF8: FnType_MINIZ_LIB_Read_Result_GetFileName_UTF8 = unsafe {getFunction(dll_handle,funcName).unwrap()};
     
 
     //------------------------------------- Call --------------------------------------
     //set parameter
     let mut ptr : ffi::c_ulonglong=0;
     //let path = "D:/Develop/CompressedFileManager/testproj/TestData/1.zip";
-    let path = "TestData/1.zip";
+    //let path = "TestData/1.zip";
+    let path = "TestData/TestData.zip";
+    
     println!("path : {}",path);
 
     // 함수 호출
@@ -119,21 +124,21 @@ fn main() {
             for i in 0..count{
                 let mut buff : Vec<ffi::c_char> = Vec::new();
                 buff.resize(200, 0);
-                let retval=fn_MINIZ_LIB_Read_Result_GetFileName(readResult,i,buff.as_ptr() as * const ffi::c_char,200);
+                let retval=fn_MINIZ_LIB_Read_Result_GetFileName_UTF8(readResult,i,buff.as_ptr() as * const ffi::c_char,200);
                 if retval != C_FALSE
                 {
                     // Vec<ffi::c_char> to String
                     let cstr = ffi::CStr::from_ptr(buff.as_ptr());
-                    let mut str:&str;
-                    let str_result = cstr.to_str();
-                    match str_result{
-                        Ok(s) => str=s,
-                        Err(s) => 
+                    let str:String;
+                    if let Ok(s) = cstr.to_str() {
+                        str=String::from_str(s).expect("String::from_str");
+                    } else {
+                        println!("UTF-8로 변환할 수 없는 문자열입니다.");
+                        // 대체 문자열을 얻기 위해 to_string_lossy() 메서드 사용
+                        let tmp=cstr.to_string_lossy().into_owned();
+                        println!("{}",tmp);
+                        str=tmp;
                     }
-
-                    
-
-                    let str=String::from_str(cstr.to_str().expect("cstr.to_str fail!")).expect("String::from_str");
                     fileNameList.push(str);
                 }
             }

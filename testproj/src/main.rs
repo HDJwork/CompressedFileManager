@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]
 
-use std::ffi;
+use std::{ffi, str::FromStr};
 use std::ffi::CString;
 use std::os::windows::ffi::OsStrExt;
 use std::ffi::OsStr;
@@ -9,6 +9,12 @@ use winapi::um::libloaderapi::{GetModuleHandleW, GetProcAddress, LoadLibraryW, F
 
 // test C DLL Dynamic Link from winapi
 // this code is supported chatgpt
+
+type C_PTR = * mut ffi::c_ulonglong;
+type C_BOOL = ffi::c_int;
+const C_FALSE : C_BOOL = 0;
+#[allow(dead_code)]
+const C_TRUE : C_BOOL = 1;
 
 unsafe fn getFunction<T>(dll_handle:*mut winapi::shared::minwindef::HINSTANCE__
     ,funcName:&str)->Result<T,&str>
@@ -64,16 +70,26 @@ fn main() {
     //------------------------------------- DLL Function Load --------------------------------------
 
     let funcName="MINIZ_LIB_Read";
-    type FnType_MINIZ_LIB_Read = unsafe extern "stdcall" fn(result: * mut ffi::c_ulonglong, filename:* const ffi::c_char)-> ffi::c_int;
+    type FnType_MINIZ_LIB_Read = unsafe extern "stdcall" fn(result: C_PTR, filename:* const ffi::c_char)-> C_BOOL;
     let fn_MINIZ_LIB_Read : FnType_MINIZ_LIB_Read=unsafe {getFunction(dll_handle,funcName).unwrap()};
     
     let funcName="MINIZ_LIB_Read_Result_Release";
-    type FnType_MINIZ_LIB_Read_Result_Release = unsafe extern "stdcall" fn(result: * mut ffi::c_ulonglong)-> ffi::c_int;
+    type FnType_MINIZ_LIB_Read_Result_Release = unsafe extern "stdcall" fn(result: C_PTR)-> C_BOOL;
     let fn_MINIZ_LIB_Read_Result_Release : FnType_MINIZ_LIB_Read_Result_Release=unsafe {getFunction(dll_handle,funcName).unwrap()};
     
     let funcName="MINIZ_LIB_Read_Result_GetErrorCode";
-    type FnType_MINIZ_LIB_Read_Result_GetErrorCode = unsafe extern "stdcall" fn(result: * mut ffi::c_ulonglong)-> ffi::c_int;
+    type FnType_MINIZ_LIB_Read_Result_GetErrorCode = unsafe extern "stdcall" fn(result: C_PTR)-> ffi::c_int;
     let fn_MINIZ_LIB_Read_Result_GetErrorCode: FnType_MINIZ_LIB_Read_Result_GetErrorCode = unsafe {getFunction(dll_handle,funcName).unwrap()};
+    
+    let funcName="MINIZ_LIB_Read_Result_GetCount";
+    type FnType_MINIZ_LIB_Read_Result_GetCount = unsafe extern "stdcall" fn(result: C_PTR) -> ffi::c_int;
+    let fn_MINIZ_LIB_Read_Result_GetCount: FnType_MINIZ_LIB_Read_Result_GetCount = unsafe {getFunction(dll_handle,funcName).unwrap()};
+
+    let funcName="MINIZ_LIB_Read_Result_GetFileName";
+    type FnType_MINIZ_LIB_Read_Result_GetFileName = unsafe extern "stdcall" fn(result: C_PTR, index: ffi::c_int, buff:* const ffi::c_char, buffCount: ffi::c_int) -> C_BOOL;
+    let fn_MINIZ_LIB_Read_Result_GetFileName: FnType_MINIZ_LIB_Read_Result_GetFileName = unsafe {getFunction(dll_handle,funcName).unwrap()};
+    
+    
 
     //------------------------------------- Call --------------------------------------
     //set parameter
@@ -90,8 +106,43 @@ fn main() {
         println!("STEP : fn_MINIZ_LIB_Read");
         let cstr = str_to_CString(path);
         let retval=fn_MINIZ_LIB_Read(readResult, cstr_to_ptr!(cstr));
-        if retval != 0{
+        
+        if retval != C_FALSE {
             println!("readresult = {}",ptr as u64);
+
+            let mut fileNameList : Vec<String> = Vec::new();
+
+            println!("STEP : fn_MINIZ_GetCount");
+            let count = fn_MINIZ_LIB_Read_Result_GetCount(readResult);
+            println!("Count : {}",count);
+            println!("STEP : fn_MINIZ_LIB_Read_Result_GetFileName");
+            for i in 0..count{
+                let mut buff : Vec<ffi::c_char> = Vec::new();
+                buff.resize(200, 0);
+                let retval=fn_MINIZ_LIB_Read_Result_GetFileName(readResult,i,buff.as_ptr() as * const ffi::c_char,200);
+                if retval != C_FALSE
+                {
+                    // Vec<ffi::c_char> to String
+                    let cstr = ffi::CStr::from_ptr(buff.as_ptr());
+                    let mut str:&str;
+                    let str_result = cstr.to_str();
+                    match str_result{
+                        Ok(s) => str=s,
+                        Err(s) => 
+                    }
+
+                    
+
+                    let str=String::from_str(cstr.to_str().expect("cstr.to_str fail!")).expect("String::from_str");
+                    fileNameList.push(str);
+                }
+            }
+            println!("STEP : Show file list");
+            println!("File List : ");
+            for fileName in fileNameList{
+                println!("{}",fileName);
+            }
+            
         }
         else{
 
@@ -101,7 +152,10 @@ fn main() {
             println!("readresult = {}",ptr as u64);
         }
         println!("STEP : fn_MINIZ_LIB_Read_Result_Release");
-        fn_MINIZ_LIB_Read_Result_Release(readResult);
+        let retval = fn_MINIZ_LIB_Read_Result_Release(readResult);
+        if retval == C_FALSE{
+            println!(" fn_MINIZ_LIB_Read_Result_Release is Fail!");
+        }
         println!("readresult = {}",ptr as u64);
     }
 

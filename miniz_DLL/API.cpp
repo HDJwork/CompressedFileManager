@@ -10,6 +10,8 @@ enum eErrorCode
 	ERROR_READER_INIT_FAIL,
 	ERROR_READER_FILESTAT_INIT_FAIL,
 	ERROR_READER_GET_FILENAME_FAIL,
+	ERROR_READER_RESULT_GET_FILENAME_INDEX_OUT_OF_RANGE,
+	ERROR_READER_RESULT_GET_FILENAME_BUFFER_IS_SMALL,
 };
 
 struct OutputData_Read {
@@ -40,8 +42,8 @@ BOOL MINIZ_LIB_Read(PTR* _result, const char* buff)
 			result.errorcode = ERROR_READER_FILESTAT_INIT_FAIL;
 			return false;
 		}
-		if (!mz_zip_reader_is_file_encrypted(&archive, i))
-			continue;
+		//if (!mz_zip_reader_is_file_encrypted(&archive, i))
+		//	continue;
 		static constexpr int SIZE_NAME = 200;
 		char buff[SIZE_NAME] = "";
 		if (!mz_zip_reader_get_filename(&archive, i, buff, SIZE_NAME))
@@ -71,11 +73,17 @@ int MINIZ_LIB_Read_Result_GetCount(PTR* _result)
 BOOL MINIZ_LIB_Read_Result_GetFileName(PTR* _result, int index, char* buff, int buffCount)
 {
 	OutputData_Read& result = *reinterpret_cast<OutputData_Read*>(*_result);
-	if (result.fileList.size() >= index)
+	if (index >= result.fileList.size())
+	{
+		result.errorcode = ERROR_READER_RESULT_GET_FILENAME_INDEX_OUT_OF_RANGE;
 		return false;
+	}
 	auto& target = result.fileList[index];
-	if (buffCount > target.size())
+	if (target.size() >= buffCount)
+	{
+		result.errorcode = ERROR_READER_RESULT_GET_FILENAME_BUFFER_IS_SMALL;
 		return false;
+	}
 	strcpy_s(buff, buffCount, target.c_str());
 	return true;
 }

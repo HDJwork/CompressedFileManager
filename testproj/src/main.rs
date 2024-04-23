@@ -16,9 +16,13 @@ const C_FALSE : C_BOOL = 0;
 #[allow(dead_code)]
 const C_TRUE : C_BOOL = 1;
 
-unsafe fn getFunction<T>(dll_handle:*mut winapi::shared::minwindef::HINSTANCE__
+unsafe fn getFunction<T : Sized>(dll_handle:*mut winapi::shared::minwindef::HINSTANCE__
     ,funcName:&str)->Result<T,&str>
 {
+    let size = std::mem::size_of::<T>();
+    if size != 8{
+        return Err("T size error");
+    }
 
     let funcName=CString::new(funcName).expect("CString::new Fail!");
 
@@ -27,7 +31,7 @@ unsafe fn getFunction<T>(dll_handle:*mut winapi::shared::minwindef::HINSTANCE__
     
     if pFunc.is_null() {
         println!("함수 '{}' 찾을 수 없음", funcName.to_str().unwrap());
-        return Err("");
+        return Err("Function not founded");
     }
 
     // 함수 시그니처에 맞게 타입 캐스팅

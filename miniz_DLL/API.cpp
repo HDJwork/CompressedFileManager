@@ -4,6 +4,9 @@
 
 #include<string>
 #include<vector>
+
+static constexpr int SIZE_STR = 200;
+
 enum eErrorCode
 {
 	ERROR_NONE = 0,
@@ -23,21 +26,21 @@ struct OutputData_Read {
 std::string multibyte_to_utf8(const std::string& str)
 {
 	int nLen = static_cast<int>(str.size());
-	wchar_t warr[256];
-	MultiByteToWideChar(CP_ACP, 0, (LPCSTR)str.c_str(), -1, warr, 256);
-	char carr[256];
+	wchar_t warr[SIZE_STR];
+	MultiByteToWideChar(CP_ACP, 0, (LPCSTR)str.c_str(), -1, warr, SIZE_STR);
+	char carr[SIZE_STR];
 	memset(carr, '\0', sizeof(carr));
-	WideCharToMultiByte(CP_UTF8, 0, warr, -1, carr, 256, NULL, NULL);
+	WideCharToMultiByte(CP_UTF8, 0, warr, -1, carr, SIZE_STR, NULL, NULL);
 	return carr;
 }
 std::string utf8_to_multibyte(const std::string& str)
 {
-	wchar_t warr[256];
+	wchar_t warr[SIZE_STR];
 	int nLen = static_cast<int>(str.size());
 	memset(warr, '\0', sizeof(warr));
-	MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, warr, 256);
-	char carr[256];    memset(carr, '\0', sizeof(carr));
-	WideCharToMultiByte(CP_ACP, 0, warr, -1, carr, 256, NULL, NULL);    return carr;
+	MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, warr, SIZE_STR);
+	char carr[SIZE_STR];    memset(carr, '\0', sizeof(carr));
+	WideCharToMultiByte(CP_ACP, 0, warr, -1, carr, SIZE_STR, NULL, NULL);    return carr;
 }
 
 
@@ -65,9 +68,8 @@ BOOL MINIZ_LIB_Read(PTR* _result, const char* buff)
 		}
 		//if (!mz_zip_reader_is_file_encrypted(&archive, i))
 		//	continue;
-		static constexpr int SIZE_NAME = 200;
-		char buff[SIZE_NAME] = "";
-		if (!mz_zip_reader_get_filename(&archive, i, buff, SIZE_NAME))
+		char buff[SIZE_STR] = "";
+		if (!mz_zip_reader_get_filename(&archive, i, buff, SIZE_STR))
 		{
 			result.errorcode = ERROR_READER_GET_FILENAME_FAIL;
 			return false;

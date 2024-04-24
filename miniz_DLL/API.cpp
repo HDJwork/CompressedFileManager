@@ -243,6 +243,18 @@ BOOL MINIZ_LIB_InitDirectory_CleanUp(const char* path)
 	return checkAndCreateDirectoryImpl(path, true);
 }
 
+BOOL MINIZ_LIB_InitDirectory_UTF8(const char* _path)
+{
+	std::string path = utf8_to_multibyte(_path);
+	return checkAndCreateDirectoryImpl(path.c_str(), false);
+}
+
+BOOL MINIZ_LIB_InitDirectory_CleanUp_UTF8(const char* _path)
+{
+	std::string path = utf8_to_multibyte(_path);
+	return checkAndCreateDirectoryImpl(path.c_str(), true);
+}
+
 BOOL MINIZ_LIB_Unzip(const char* target, const char* resultPath)
 {
 	if (!std::filesystem::exists(target))
@@ -316,6 +328,13 @@ BOOL MINIZ_LIB_Unzip(const char* target, const char* resultPath)
 	return BOOL_TRUE;
 }
 
+BOOL MINIZ_LIB_Unzip_UTF8(const char* _target, const char* _resultPath)
+{
+	std::string target = utf8_to_multibyte(_target);
+	std::string resultPath = utf8_to_multibyte(_resultPath);
+	return MINIZ_LIB_Unzip(target.c_str(), resultPath.c_str());
+}
+
 BOOL MINIZ_LIB_Zip(const char* _targetDir, const char* _resultPath, const char** _passingList, int noOfPassingList)
 {
 	std::filesystem::path targetDir = _targetDir;
@@ -379,8 +398,10 @@ BOOL MINIZ_LIB_Zip(const char* _targetDir, const char* _resultPath, const char**
 	return BOOL_TRUE;
 }
 
-BOOL MINIZ_LIB_Zip_UTF8(const char* targetDir, const char* resultPath, const char** _passingList, int noOfPassingList)
+BOOL MINIZ_LIB_Zip_UTF8(const char* _targetDir, const char* _resultPath, const char** _passingList, int noOfPassingList)
 {
+	std::string targetDir = utf8_to_multibyte(_targetDir);
+	std::string resultPath = utf8_to_multibyte(_resultPath);
 	std::vector<const char*> passingList;
 	std::vector<std::string> passingList_Convert;
 	passingList.reserve(noOfPassingList);
@@ -391,5 +412,28 @@ BOOL MINIZ_LIB_Zip_UTF8(const char* targetDir, const char* resultPath, const cha
 		passingList.push_back(passingList_Convert[i].c_str());
 	}
 
-	return MINIZ_LIB_Zip(targetDir, resultPath, passingList.data(), noOfPassingList);
+	return MINIZ_LIB_Zip(targetDir.c_str(), resultPath.c_str(), passingList.data(), noOfPassingList);
+}
+
+BOOL MINIZ_LIB_Recompress(const char* target, const char* resultPath, const char* tmpPath, const char** passingList, int noOfPassingList)
+{
+	if(!MINIZ_LIB_InitDirectory_CleanUp(tmpPath))
+		return BOOL_FALSE;
+	if (!MINIZ_LIB_Unzip(target, tmpPath))
+		return BOOL_FALSE;
+	if(!MINIZ_LIB_Zip(tmpPath, resultPath, passingList, noOfPassingList))
+		return BOOL_FALSE;
+	return BOOL_TRUE;
+
+}
+
+DLL_API BOOL MINIZ_LIB_Recompress_UTF8(const char* target, const char* resultPath, const char* tmpPath, const char** passingList, int noOfPassingList)
+{
+	if (!MINIZ_LIB_InitDirectory_CleanUp_UTF8(tmpPath))
+		return BOOL_FALSE;
+	if (!MINIZ_LIB_Unzip_UTF8(target, tmpPath))
+		return BOOL_FALSE;
+	if (!MINIZ_LIB_Zip_UTF8(tmpPath, resultPath, passingList, noOfPassingList))
+		return BOOL_FALSE;
+	return BOOL_TRUE;
 }

@@ -7,6 +7,7 @@
 #include<stack>
 #include<filesystem>
 #include<fstream>
+#include<algorithm>
 
 static constexpr int SIZE_STR = 200;
 static constexpr BOOL BOOL_FALSE = 0;
@@ -38,6 +39,7 @@ std::string multibyte_to_utf8(const std::string& str)
 	WideCharToMultiByte(CP_UTF8, 0, warr, -1, carr, SIZE_STR, NULL, NULL);
 	return carr;
 }
+
 std::string utf8_to_multibyte(const std::string& str)
 {
 	wchar_t warr[SIZE_STR];
@@ -101,6 +103,28 @@ BOOL checkAndCreateDirectoryImpl(const char* path, bool bCleanUp)
 	return BOOL_TRUE;
 }
 
+std::vector<std::string> getSubFileList(std::filesystem::path targetDir)
+{
+	if (!targetDir.is_absolute())
+		targetDir = std::filesystem::absolute(targetDir);
+	std::vector<std::string> retval;
+
+	auto iter = std::filesystem::directory_iterator(targetDir);
+	auto iter_end = std::filesystem::directory_iterator();
+	while (iter != iter_end)
+	{
+		auto subPath = iter->path();
+		if (std::filesystem::is_directory(subPath))
+		{
+			auto result = getSubFileList(subPath);
+			retval.insert(retval.end(), result.begin(), result.end());
+		}
+		else
+			retval.push_back(subPath.string());
+		++iter;
+	}
+	return retval;
+}
 
 BOOL MINIZ_LIB_Read(PTR* _result, const char* buff)
 {
@@ -289,5 +313,83 @@ BOOL MINIZ_LIB_Unzip(const char* target, const char* resultPath)
 
 	mz_zip_reader_end(&zip_archive);
 
-	return 0;
+	return BOOL_TRUE;
+}
+
+BOOL MINIZ_LIB_Zip(const char* _targetDir, const char* _resultPath, const char** _passingList, int noOfPassingList)
+{
+	std::filesystem::path targetDir = _targetDir;
+
+	//create target path parent directory
+	std::filesystem::path resultPath = _resultPath;
+	if (resultPath.has_parent_path())
+	{
+		auto parentPath = resultPath.parent_path();
+		if(!std::filesystem::exists(resultPath.parent_path()))
+			checkAndCreateDirectoryImpl(parentPath.string().c_str(), false);
+	}
+
+	//passingList sort 후 이진탐색으로 확인
+	std::vector<std::string> passingList;
+	passingList.reserve(noOfPassingList);
+	for (int i = 0; i < noOfPassingList; ++i)
+	{
+		std::filesystem::path passingFile = *(_passingList + i);
+		if (passingFile.is_absolute())
+			passingFile = passingFile.lexically_relative(targetDir);
+		passingList.push_back(passingFile.string());
+	}
+	std::sort(passingList.begin(), passingList.end());
+
+	mz_zip_archive zip_archive;
+	memset(&zip_archive, 0, sizeof(zip_archive));
+	if (!mz_zip_writer_init_file(&zip_archive, _resultPath, 0)) {
+		//printf("Error: Failed to initialize zip writer.\n");
+		return BOOL_FALSE;
+	}
+
+	auto subFileList = getSubFileList(targetDir);
+	for(const auto& subFile: subFileList)
+	{
+		std::filesystem::path subPath = subFile;
+		auto relativePath = subPath.lexically_relative(targetDir).string();
+
+		//passingList에 존재하면 패스
+		if (std::binary_search(passingList.begin(), passingList.end(), relativePath))
+			continue;
+
+		if (!mz_zip_writer_add_file(
+			&zip_archive, 
+			multibyte_to_utf8(relativePath).c_str(),
+			multibyte_to_utf8(subFile).c_str(),
+			NULL, 0, MZ_BEST_COMPRESSION))
+		{
+			mz_zip_writer_end(&zip_archive);
+			return BOOL_FALSE;
+		}
+	}
+
+	if (!mz_zip_writer_finalize_archive(&zip_archive)) {
+		//printf("Error: Failed to finalize zip archive.\n");
+		mz_zip_writer_end(&zip_archive);
+		return BOOL_FALSE;
+	}
+
+	mz_zip_writer_end(&zip_archive);
+	return BOOL_TRUE;
+}
+
+BOOL MINIZ_LIB_Zip_UTF8(const char* targetDir, const char* resultPath, const char** _passingList, int noOfPassingList)
+{
+	std::vector<const char*> passingList;
+	std::vector<std::string> passingList_Convert;
+	passingList.reserve(noOfPassingList);
+	passingList_Convert.reserve(noOfPassingList);
+	for (int i = 0; i < noOfPassingList; ++i)
+	{
+		passingList_Convert.push_back(utf8_to_multibyte(*(_passingList + i)));
+		passingList.push_back(passingList_Convert[i].c_str());
+	}
+
+	return MINIZ_LIB_Zip(targetDir, resultPath, passingList.data(), noOfPassingList);
 }

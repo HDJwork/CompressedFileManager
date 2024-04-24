@@ -10,7 +10,8 @@ int main()
     PTR _ptr = 0;
     PTR *ptr = &_ptr;
     
-    if (MINIZ_LIB_Read(ptr, "D:/Develop/CompressedFileManager/testproj/TestData/TestData.zip"))
+    auto filePath = "D:/Develop/CompressedFileManager/testproj/TestData/TestData.zip";
+    if (MINIZ_LIB_Read(ptr, filePath))
     {
         std::cout << "ptr : " << ptr << std::endl;
         int count = MINIZ_LIB_Read_Result_GetCount(ptr);
@@ -38,7 +39,9 @@ int main()
     std::cout << "ptr : " << ptr << std::endl;
 
 
-    MINIZ_LIB_InitDirectory("D:\\Develop\\TMP\\TMP");
+    auto outputPath = "D:\\Develop\\CompOutput\\";
+    MINIZ_LIB_InitDirectory_CleanUp(outputPath);
+    MINIZ_LIB_Unzip(filePath, outputPath);
 
 
 }

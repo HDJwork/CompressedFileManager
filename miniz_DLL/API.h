@@ -20,5 +20,7 @@ DLL_API BOOL MINIZ_LIB_Read_Result_GetFileName_UTF8(PTR* _result, int index, cha
 DLL_API void MINIZ_LIB_Read_Result_Release(PTR* _result);
 
 DLL_API BOOL MINIZ_LIB_InitDirectory(const char* path);
+DLL_API BOOL MINIZ_LIB_InitDirectory_CleanUp(const char* path);
+DLL_API BOOL MINIZ_LIB_Unzip(const char* target, const char* resultPath);
 
 }

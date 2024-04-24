@@ -6,6 +6,7 @@
 #include<vector>
 #include<stack>
 #include<filesystem>
+#include<fstream>
 
 static constexpr int SIZE_STR = 200;
 static constexpr BOOL BOOL_FALSE = 0;
@@ -45,6 +46,59 @@ std::string utf8_to_multibyte(const std::string& str)
 	MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, warr, SIZE_STR);
 	char carr[SIZE_STR];    memset(carr, '\0', sizeof(carr));
 	WideCharToMultiByte(CP_ACP, 0, warr, -1, carr, SIZE_STR, NULL, NULL);    return carr;
+}
+
+BOOL checkAndCreateDirectoryImpl(const char* path, bool bCleanUp)
+{
+	std::filesystem::path targetPath = path;
+	if (!targetPath.is_absolute())
+		targetPath = std::filesystem::absolute(targetPath);
+	auto bExist = std::filesystem::exists(targetPath);
+
+	if (bExist && !std::filesystem::is_directory(targetPath))
+		return BOOL_FALSE;
+
+	//crate directory
+	if (!bExist)
+	{
+		auto parent = targetPath;
+		std::stack<std::filesystem::path> pathStack;
+		while (!std::filesystem::exists(parent))
+		{
+			if (!parent.has_parent_path())
+				return BOOL_FALSE;
+
+			pathStack.push(parent);
+
+			parent = parent.parent_path();
+		}
+		while (!pathStack.empty())
+		{
+			if (!std::filesystem::create_directory(pathStack.top()))
+				return BOOL_FALSE;
+
+			pathStack.pop();
+		}
+	}
+	else if (bCleanUp)
+	{
+		//check and remove children
+		auto iter = std::filesystem::directory_iterator(targetPath);
+		auto iter_end = std::filesystem::directory_iterator();
+
+		std::vector<std::filesystem::path> childList;
+		while (iter != iter_end)
+		{
+			childList.push_back(iter->path());
+			++iter;
+		}
+		for (const auto& childPath : childList)
+		{
+			if (!std::filesystem::remove_all(childPath))
+				return BOOL_FALSE;
+		}
+	}
+	return BOOL_TRUE;
 }
 
 
@@ -157,53 +211,83 @@ void MINIZ_LIB_Read_Result_Release(PTR* _result)
 
 BOOL MINIZ_LIB_InitDirectory(const char* path)
 {
-	std::filesystem::path targetPath = path;
-	if (!targetPath.is_absolute())
-		targetPath = std::filesystem::absolute(targetPath);
-	auto bExist = std::filesystem::exists(targetPath);
+	return checkAndCreateDirectoryImpl(path, false);
+}
 
-	if (bExist && !std::filesystem::is_directory(targetPath))
+BOOL MINIZ_LIB_InitDirectory_CleanUp(const char* path)
+{
+	return checkAndCreateDirectoryImpl(path, true);
+}
+
+BOOL MINIZ_LIB_Unzip(const char* target, const char* resultPath)
+{
+	if (!std::filesystem::exists(target))
 		return BOOL_FALSE;
 
-	//crate directory
-	if (!bExist)
-	{
-		auto parent = targetPath;
-		std::stack<std::filesystem::path> pathStack;
-		while (!std::filesystem::exists(parent))
-		{
-			if (!parent.has_parent_path())
-				return BOOL_FALSE;
+	//read file to memory
+	std::ifstream ifs(target,std::ios::binary);
+	if (!ifs.is_open())
+		return BOOL_FALSE;
 
-			pathStack.push(parent);
+	ifs.seekg(0, std::ios::end);
+	size_t size = ifs.tellg();
+	std::vector<char> buffer;
+	buffer.resize(size);
+	ifs.seekg(0);
+	ifs.read(&buffer[0], size);
 
-			parent = parent.parent_path();
-		}
-		while (!pathStack.empty())
-		{
-			if(!std::filesystem::create_directory(pathStack.top()))
-				return BOOL_FALSE;
+	ifs.close();
 
-			pathStack.pop();
-		}
+	//unzip process
+	std::vector<char> fileBuffer;
+
+	mz_zip_archive zip_archive;
+	memset(&zip_archive, 0, sizeof(zip_archive));
+
+	if (!mz_zip_reader_init_mem(&zip_archive, buffer.data(), size, 0)) {
+		return BOOL_FALSE;
 	}
-	else
-	{
-		//check and remove children
-		auto iter = std::filesystem::directory_iterator(targetPath);
-		auto iter_end = std::filesystem::directory_iterator();
 
-		std::vector<std::filesystem::path> childList;
-		while (iter != iter_end)
-		{
-			childList.push_back(iter->path());
-			++iter;
+	int num_files = mz_zip_reader_get_num_files(&zip_archive);
+	for (int i = 0; i < num_files; ++i) {
+		mz_zip_archive_file_stat file_stat;
+		if (!mz_zip_reader_file_stat(&zip_archive, i, &file_stat)) {
+			//printf("Error: Failed to read file info from zip.\n");
+			mz_zip_reader_end(&zip_archive);
+			return BOOL_FALSE;
 		}
-		for (const auto& childPath : childList)
-		{
-			if (!std::filesystem::remove(childPath))
-				return BOOL_FALSE;
+
+		auto fileSize = file_stat.m_uncomp_size;
+		fileBuffer.resize(fileSize);
+		
+		if (!mz_zip_reader_extract_to_mem(&zip_archive, i, fileBuffer.data(), file_stat.m_uncomp_size, 0)) {
+			//printf("Error: Failed to extract file from zip.\n");
+			mz_zip_reader_end(&zip_archive);
+			return BOOL_FALSE;
 		}
+		std::filesystem::path outputPath = resultPath;
+		outputPath /= file_stat.m_filename;
+		
+		//create sub directory
+		if (outputPath.has_parent_path())
+			checkAndCreateDirectoryImpl(outputPath.parent_path().string().c_str(), false);
+		
+		//create file
+		std::ofstream ofs(outputPath, std::ios::binary);
+		if (!ofs.is_open())
+		{
+			mz_zip_reader_end(&zip_archive);
+			return BOOL_FALSE;
+		}
+		if (!ofs.write(fileBuffer.data(), fileSize).good())
+		{
+			mz_zip_reader_end(&zip_archive);
+			return BOOL_FALSE;
+		}
+		ofs.close();
 	}
-	return BOOL_TRUE;
+
+	mz_zip_reader_end(&zip_archive);
+
+	return 0;
 }

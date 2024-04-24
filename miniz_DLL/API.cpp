@@ -458,7 +458,8 @@ BOOL MINIZ_LIB_Recompress_UTF8(const char* target, const char* resultPath, const
 	GetTempPathA(SIZE_STR, buff);
 	std::filesystem::path tmpPath = buff;
 	tmpPath /= "TEMP_MINIZ";
-	BOOL retval = MINIZ_LIB_Recompress_SetTmpFolder_UTF8(target, resultPath, tmpPath.string().c_str(), passingList, noOfPassingList);
+	std::string tempDir = multibyte_to_utf8(tmpPath.string());
+	BOOL retval = MINIZ_LIB_Recompress_SetTmpFolder_UTF8(target, resultPath, tempDir.c_str(), passingList, noOfPassingList);
 	if (!std::filesystem::remove_all(tmpPath))
 	{
 		//Do nothing

@@ -27,8 +27,10 @@ DLL_API BOOL MINIZ_LIB_Unzip(const char* target, const char* resultPath);
 DLL_API BOOL MINIZ_LIB_Unzip_UTF8(const char* target, const char* resultPath);
 DLL_API BOOL MINIZ_LIB_Zip(const char* targetDir, const char* resultPath, const char** passingList, int noOfPassingList);
 DLL_API BOOL MINIZ_LIB_Zip_UTF8(const char* targetDir, const char* resultPath, const char** passingList, int noOfPassingList);
-DLL_API BOOL MINIZ_LIB_Recompress(const char* target, const char* resultPath, const char* tmpPath, const char** passingList, int noOfPassingList);
-DLL_API BOOL MINIZ_LIB_Recompress_UTF8(const char* target, const char* resultPath, const char* tmpPath, const char** passingList, int noOfPassingList);
+DLL_API BOOL MINIZ_LIB_Recompress_SetTmpFolder(const char* target, const char* resultPath, const char* tmpPath, const char** passingList, int noOfPassingList);
+DLL_API BOOL MINIZ_LIB_Recompress_SetTmpFolder_UTF8(const char* target, const char* resultPath, const char* tmpPath, const char** passingList, int noOfPassingList);
+DLL_API BOOL MINIZ_LIB_Recompress(const char* target, const char* resultPath, const char** passingList, int noOfPassingList);
+DLL_API BOOL MINIZ_LIB_Recompress_UTF8(const char* target, const char* resultPath, const char** passingList, int noOfPassingList);
 
 
 }

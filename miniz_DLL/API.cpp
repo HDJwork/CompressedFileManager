@@ -24,8 +24,8 @@ enum eErrorCode
 };
 
 struct OutputData_Read {
-	eErrorCode errorcode;
-	int count;
+	eErrorCode errorcode = ERROR_NONE;
+	int count = 0;
 	std::vector<std::string> fileList;
 };
 
@@ -415,7 +415,7 @@ BOOL MINIZ_LIB_Zip_UTF8(const char* _targetDir, const char* _resultPath, const c
 	return MINIZ_LIB_Zip(targetDir.c_str(), resultPath.c_str(), passingList.data(), noOfPassingList);
 }
 
-BOOL MINIZ_LIB_Recompress(const char* target, const char* resultPath, const char* tmpPath, const char** passingList, int noOfPassingList)
+BOOL MINIZ_LIB_Recompress_SetTmpFolder(const char* target, const char* resultPath, const char* tmpPath, const char** passingList, int noOfPassingList)
 {
 	if(!MINIZ_LIB_InitDirectory_CleanUp(tmpPath))
 		return BOOL_FALSE;
@@ -427,7 +427,7 @@ BOOL MINIZ_LIB_Recompress(const char* target, const char* resultPath, const char
 
 }
 
-DLL_API BOOL MINIZ_LIB_Recompress_UTF8(const char* target, const char* resultPath, const char* tmpPath, const char** passingList, int noOfPassingList)
+DLL_API BOOL MINIZ_LIB_Recompress_SetTmpFolder_UTF8(const char* target, const char* resultPath, const char* tmpPath, const char** passingList, int noOfPassingList)
 {
 	if (!MINIZ_LIB_InitDirectory_CleanUp_UTF8(tmpPath))
 		return BOOL_FALSE;
@@ -436,4 +436,32 @@ DLL_API BOOL MINIZ_LIB_Recompress_UTF8(const char* target, const char* resultPat
 	if (!MINIZ_LIB_Zip_UTF8(tmpPath, resultPath, passingList, noOfPassingList))
 		return BOOL_FALSE;
 	return BOOL_TRUE;
+}
+
+BOOL MINIZ_LIB_Recompress(const char* target, const char* resultPath, const char** passingList, int noOfPassingList)
+{
+	char buff[SIZE_STR];
+	GetTempPathA(SIZE_STR, buff);
+	std::filesystem::path tmpPath = buff;
+	tmpPath /= "TEMP_MINIZ";
+	BOOL retval = MINIZ_LIB_Recompress_SetTmpFolder(target, resultPath, tmpPath.string().c_str(), passingList, noOfPassingList);
+	if (!std::filesystem::remove_all(tmpPath))
+	{
+		//Do nothing
+	}
+	return retval;
+}
+
+BOOL MINIZ_LIB_Recompress_UTF8(const char* target, const char* resultPath, const char** passingList, int noOfPassingList)
+{
+	char buff[SIZE_STR];
+	GetTempPathA(SIZE_STR, buff);
+	std::filesystem::path tmpPath = buff;
+	tmpPath /= "TEMP_MINIZ";
+	BOOL retval = MINIZ_LIB_Recompress_SetTmpFolder_UTF8(target, resultPath, tmpPath.string().c_str(), passingList, noOfPassingList);
+	if (!std::filesystem::remove_all(tmpPath))
+	{
+		//Do nothing
+	}
+	return retval;
 }

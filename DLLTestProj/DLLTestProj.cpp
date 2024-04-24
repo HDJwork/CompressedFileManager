@@ -39,13 +39,15 @@ int main()
     MINIZ_LIB_Read_Result_Release(ptr);
     std::cout << "ptr : " << ptr << std::endl;
 
-    auto outputPath = "D:\\Develop\\CompOutput\\";
-    MINIZ_LIB_InitDirectory_CleanUp(outputPath);
-    MINIZ_LIB_Unzip(filePath, outputPath);
-    auto zipPath = "D:/Develop/CompressedFileManager/testproj/TestData/TestData2.zip";
-    MINIZ_LIB_Zip(outputPath, zipPath, nullptr, 0);
-    auto zipPath2 = "D:/Develop/CompressedFileManager/testproj/TestData/TestData3.zip";
-    std::vector<const char*> v = {"1.txt","B\\ㅂㅂㅂ.txt"};
-    MINIZ_LIB_Zip(outputPath, zipPath2, v.data(), static_cast<int>(v.size()));
-
+    //auto outputPath = "D:\\Develop\\CompOutput\\";
+    //MINIZ_LIB_InitDirectory_CleanUp(outputPath);
+    //MINIZ_LIB_Unzip(filePath, outputPath);
+    //auto zipPath = "D:/Develop/CompressedFileManager/testproj/TestData/TestData2.zip";
+    //MINIZ_LIB_Zip(outputPath, zipPath, nullptr, 0);
+    //auto zipPath2 = "D:/Develop/CompressedFileManager/testproj/TestData/TestData3.zip";
+    //std::vector<const char*> v = {"1.txt","B\\ㅂㅂㅂ.txt"};
+    //MINIZ_LIB_Zip(outputPath, zipPath2, v.data(), static_cast<int>(v.size()));
+    auto zipPath3 = "D:/Develop/CompressedFileManager/testproj/TestData/TestData4.zip";
+    std::vector<const char*> v = { "B\\1.txt" };
+    MINIZ_LIB_Recompress(filePath, zipPath3, v.data(), static_cast<int>(v.size()));
 }

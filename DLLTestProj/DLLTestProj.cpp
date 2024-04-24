@@ -38,4 +38,7 @@ int main()
     std::cout << "ptr : " << ptr << std::endl;
 
 
+    MINIZ_LIB_InitDirectory("D:\\Develop\\TMP\\TMP");
+
+
 }

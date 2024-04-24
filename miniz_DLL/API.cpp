@@ -4,8 +4,12 @@
 
 #include<string>
 #include<vector>
+#include<stack>
+#include<filesystem>
 
 static constexpr int SIZE_STR = 200;
+static constexpr BOOL BOOL_FALSE = 0;
+static constexpr BOOL BOOL_TRUE = 1;
 
 enum eErrorCode
 {
@@ -53,7 +57,7 @@ BOOL MINIZ_LIB_Read(PTR* _result, const char* buff)
 	if (!mz_zip_reader_init_file(&archive, buff, 0))
 	{
 		result.errorcode = ERROR_READER_INIT_FAIL;
-		return false;
+		return BOOL_FALSE;
 	}
 //	mz_zip_reader_init_file(&archive, buff, 0);
 
@@ -64,7 +68,7 @@ BOOL MINIZ_LIB_Read(PTR* _result, const char* buff)
 		if (!mz_zip_reader_file_stat(&archive, i, &fileStat))
 		{
 			result.errorcode = ERROR_READER_FILESTAT_INIT_FAIL;
-			return false;
+			return BOOL_FALSE;
 		}
 		//if (!mz_zip_reader_is_file_encrypted(&archive, i))
 		//	continue;
@@ -72,13 +76,13 @@ BOOL MINIZ_LIB_Read(PTR* _result, const char* buff)
 		if (!mz_zip_reader_get_filename(&archive, i, buff, SIZE_STR))
 		{
 			result.errorcode = ERROR_READER_GET_FILENAME_FAIL;
-			return false;
+			return BOOL_FALSE;
 		}
 		result.fileList.push_back(buff);
 	}
 
 	mz_zip_reader_end(&archive);
-	return true;
+	return BOOL_TRUE;
 }
 
 int MINIZ_LIB_Read_Result_GetErrorCode(PTR* _result)
@@ -99,17 +103,17 @@ BOOL MINIZ_LIB_Read_Result_GetFileName(PTR* _result, int index, char* buff, int 
 	if (index >= result.fileList.size())
 	{
 		result.errorcode = ERROR_READER_RESULT_GET_FILENAME_INDEX_OUT_OF_RANGE;
-		return false;
+		return BOOL_FALSE;
 	}
 	auto& target = result.fileList[index];
 	if (target.size() >= buffCount)
 	{
 		result.errorcode = ERROR_READER_RESULT_GET_FILENAME_BUFFER_IS_SMALL;
-		return false;
+		return BOOL_FALSE;
 	}
 
 	strcpy_s(buff, buffCount, target.c_str());
-	return true;
+	return BOOL_TRUE;
 }
 BOOL MINIZ_LIB_Read_Result_GetFileName_UTF8(PTR* _result, int index, char* buff, int buffCount)
 {
@@ -117,7 +121,7 @@ BOOL MINIZ_LIB_Read_Result_GetFileName_UTF8(PTR* _result, int index, char* buff,
 	if (index >= result.fileList.size())
 	{
 		result.errorcode = ERROR_READER_RESULT_GET_FILENAME_INDEX_OUT_OF_RANGE;
-		return false;
+		return BOOL_FALSE;
 	}
 	auto& target = result.fileList[index];
 	std::string str = target;
@@ -125,11 +129,11 @@ BOOL MINIZ_LIB_Read_Result_GetFileName_UTF8(PTR* _result, int index, char* buff,
 	if (target.size() >= buffCount)
 	{
 		result.errorcode = ERROR_READER_RESULT_GET_FILENAME_BUFFER_IS_SMALL;
-		return false;
+		return BOOL_FALSE;
 	}
 
 	strcpy_s(buff, buffCount, str.c_str());
-	return true;
+	return BOOL_TRUE;
 
 }
 
@@ -149,4 +153,57 @@ void MINIZ_LIB_Read_Result_Release(PTR* _result)
 		*_result = 1;
 	}
 	*_result = 0;
+}
+
+BOOL MINIZ_LIB_InitDirectory(const char* path)
+{
+	std::filesystem::path targetPath = path;
+	if (!targetPath.is_absolute())
+		targetPath = std::filesystem::absolute(targetPath);
+	auto bExist = std::filesystem::exists(targetPath);
+
+	if (bExist && !std::filesystem::is_directory(targetPath))
+		return BOOL_FALSE;
+
+	//crate directory
+	if (!bExist)
+	{
+		auto parent = targetPath;
+		std::stack<std::filesystem::path> pathStack;
+		while (!std::filesystem::exists(parent))
+		{
+			if (!parent.has_parent_path())
+				return BOOL_FALSE;
+
+			pathStack.push(parent);
+
+			parent = parent.parent_path();
+		}
+		while (!pathStack.empty())
+		{
+			if(!std::filesystem::create_directory(pathStack.top()))
+				return BOOL_FALSE;
+
+			pathStack.pop();
+		}
+	}
+	else
+	{
+		//check and remove children
+		auto iter = std::filesystem::directory_iterator(targetPath);
+		auto iter_end = std::filesystem::directory_iterator();
+
+		std::vector<std::filesystem::path> childList;
+		while (iter != iter_end)
+		{
+			childList.push_back(iter->path());
+			++iter;
+		}
+		for (const auto& childPath : childList)
+		{
+			if (!std::filesystem::remove(childPath))
+				return BOOL_FALSE;
+		}
+	}
+	return BOOL_TRUE;
 }

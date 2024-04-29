@@ -1,11 +1,11 @@
 #![allow(non_snake_case)]
 
 pub trait ICompressManager{
-    fn Open(&self)->bool;
+    fn Open(&mut self)->bool;
     fn IsOpen(&self)->bool;
-    fn Close(&self)->bool;
-    fn GetFileList(&self)->Vec<String>;
-    fn Compress(&self)->bool;
+    fn Close(&mut self)->bool;
+    fn GetFileList(&mut self)->Vec<String>;
+    fn Compress(&mut self)->bool;
 }
 
 
@@ -19,20 +19,20 @@ pub struct DummyCompressManager
 impl ICompressManager for DummyCompressManager
 {
     fn IsOpen(&self)->bool   {   return false;   }
-    fn Open(&self)->bool{    return false;
+    fn Open(&mut self)->bool{    return false;
         
     }
-    fn Close(&self)->bool
+    fn Close(&mut self)->bool
     {
         return false;
 
     }
-    fn GetFileList(&self)->Vec<String>
+    fn GetFileList(&mut self)->Vec<String>
     {
         return vec!["FromDummyClass".to_string()]
 
     }
-    fn Compress(&self)->bool
+    fn Compress(&mut self)->bool
     {
         return false;
     }

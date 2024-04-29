@@ -25,20 +25,26 @@ impl CompressedFile{
         return CompressedFile{
             path: String::from(path),
             id: Self::getID(),
-            manager: Box::new(CompressManagerImpl::new()),
+            manager: Box::new(CompressManagerImpl::new(path)),
         };
     }
 
-    pub fn GetFileList(&self)->Vec<String>
+    pub fn GetFileList(&mut self)->Vec<String>
     {
+        if !self.manager.IsOpen(){
+            if !self.manager.Open(){
+                println!("[CompressedFile]Open Fail!");
+                return Vec::new();
+            }
+        }
         return self.manager.GetFileList();
     }
-    pub fn Recompress(&self, path:&str)->bool
+    pub fn Recompress(&mut self, path:&str)->bool
     {
         //T.B.D
         return self.manager.Compress();
     }
-    pub fn DeleteFile(&self, file:&str)->bool
+    pub fn DeleteFile(&mut self, file:&str)->bool
     {
         //T.B.D
         return false;
@@ -48,7 +54,7 @@ impl CompressedFile{
         //T.B.D
         return false;
     }
-    pub fn PreviewFile(&self)->Box<dyn IPreviewedFile>
+    pub fn PreviewFile(&mut self)->Box<dyn IPreviewedFile>
     {
         //T.B.D
         #[cfg(debug_assertions)]

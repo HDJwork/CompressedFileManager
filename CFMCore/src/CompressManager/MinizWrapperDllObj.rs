@@ -1,24 +1,29 @@
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]
 
-use std::sync::{Arc,Mutex};
-use std::cell::OnceCell;
+//use std::sync::{Arc,Mutex};
+//use std::cell::OnceCell;
 
 //#[macro_use]
 //extern crate lazy_static;
-use lazy_static::lazy_static;
+//use lazy_static::lazy_static;
 //---------------------------------------------------------- Type Definition --------------------------------------------------------------------
 //C Type
-type C_PTR = * mut std::ffi::c_ulonglong;
-type C_BOOL = std::ffi::c_int;
-type C_INT = std::ffi::c_int;
-type C_CHAR = std::ffi::c_char;
-type C_STR = * const C_CHAR;
-type C_STRS = * const C_STR;
+pub type C_HANDLE = std::ffi::c_ulonglong;
+pub type C_PTR = * mut C_HANDLE;
+pub type C_BOOL = std::ffi::c_int;
+pub type C_INT = std::ffi::c_int;
+pub type C_CHAR = std::ffi::c_char;
+pub type C_STR = * const C_CHAR;
+pub type C_STRS = * const C_STR;
 
-pub const C_FALSE : C_BOOL = 0;
 #[allow(dead_code)]
 pub const C_TRUE : C_BOOL = 1;
+pub const C_FALSE : C_BOOL = 0;
+pub const C_HANDLE_NULL : C_HANDLE = 0;
+pub const C_BUFFER_MAX : C_INT = 200;
+
+//pub type MinizWrapperDllObj_Static = &'static mut MinizWrapperDllObj;
 
 //Function Type
 type FnType_MINIZ_LIB_Read = unsafe extern "stdcall" fn(result: C_PTR, filename:C_STR)-> C_BOOL;
@@ -68,6 +73,7 @@ impl Drop for MinizWrapperDllObj
 static mut INSTANCE : Option<&'static mut MinizWrapperDllObj> = None;
 
 impl MinizWrapperDllObj{
+    //singleton
     pub fn instance() -> &'static mut MinizWrapperDllObj {
         unsafe {
             match INSTANCE {
@@ -86,7 +92,7 @@ impl MinizWrapperDllObj{
     pub fn destroy() {
         unsafe {
             if let Some(raw) = std::mem::replace(&mut INSTANCE, None) {
-                Box::from_raw(raw);
+                let _ = Box::from_raw(raw);
             }
         }
     }
@@ -146,17 +152,56 @@ impl MinizWrapperDllObj{
 
         return retval;
     }
-
+   
+   
 }
 
-
+    
 
 //---------------------------------------------------------- Utility --------------------------------------------------------------------
 
-mod Utility{
-
-    use std::ffi;
+pub mod Utility{
+    use crate::CompressManager::MinizWrapperDllObj::{
+        C_HANDLE,
+        C_PTR,
+        C_CHAR,
+    };
     use std::ffi::CString;
+
+    #[allow(unused_macros)]
+    macro_rules! cstr_to_ptr {
+        ($cstr:expr) => {{
+            $cstr.as_ptr() as *const ffi::c_char
+        }};
+    }
+    
+    pub fn str_to_CString(str:&str) -> std::ffi::CString
+    {
+        return std::ffi::CString::new(str.to_string()).expect("CString::new failed");
+    }
+    
+    pub fn handle_to_ptr(handle:& mut C_HANDLE) -> C_PTR
+    {
+        let readResult: *mut std::ffi::c_ulonglong = handle as *mut C_HANDLE;
+        return readResult;
+    }
+
+    pub fn to_string(buff :&Vec<C_CHAR>) -> String
+    {
+        let cstr = unsafe{std::ffi::CStr::from_ptr(buff.as_ptr())};
+        let str:String;
+        if let Ok(s) = cstr.to_str() {
+            use std::str::FromStr;
+            str=String::from_str(s).expect("String::from_str");
+        } else {
+            println!("UTF-8로 변환할 수 없는 문자열입니다.");
+            // 대체 문자열을 얻기 위해 to_string_lossy() 메서드 사용
+            let tmp=cstr.to_string_lossy().into_owned();
+            println!("{}",tmp);
+            str=tmp;
+        }
+        return str;
+    }
     
     pub unsafe fn getFunction<T : Sized>(
         funcName:&str
@@ -189,14 +234,4 @@ mod Utility{
         return Ok(func);
     }
     
-    fn str_to_CString(str:&str) -> CString
-    {
-        return ffi::CString::new(str.to_string()).expect("CString::new failed");
-    }
-    
-// macro_rules! cstr_to_ptr {
-//     ($cstr:expr) => {{
-//         $cstr.as_ptr() as *const ffi::c_char
-//     }};
-// }
 }

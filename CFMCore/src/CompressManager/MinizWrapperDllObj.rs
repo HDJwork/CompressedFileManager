@@ -16,6 +16,7 @@ pub type C_INT = std::ffi::c_int;
 pub type C_CHAR = std::ffi::c_char;
 pub type C_STR = * const C_CHAR;
 pub type C_STRS = * const C_STR;
+pub type C_CSTRING = std::ffi::CString;
 
 #[allow(dead_code)]
 pub const C_TRUE : C_BOOL = 1;
@@ -165,27 +166,27 @@ pub mod Utility{
         C_HANDLE,
         C_PTR,
         C_CHAR,
+        C_CSTRING,
     };
-    use std::ffi::CString;
 
-    #[allow(unused_macros)]
-    macro_rules! cstr_to_ptr {
-        ($cstr:expr) => {{
-            $cstr.as_ptr() as *const ffi::c_char
-        }};
-    }
-    
-    pub fn str_to_CString(str:&str) -> std::ffi::CString
-    {
-        return std::ffi::CString::new(str.to_string()).expect("CString::new failed");
-    }
-    
     pub fn handle_to_ptr(handle:& mut C_HANDLE) -> C_PTR
     {
         let readResult: *mut std::ffi::c_ulonglong = handle as *mut C_HANDLE;
         return readResult;
     }
 
+    #[allow(unused_macros)]
+    macro_rules! cstr_to_ptr {
+        ($cstr:expr) => {{
+            $cstr.as_ptr() as *const std::ffi::c_char
+        }};
+    }
+    
+    pub fn str_to_CString(str:&str) -> C_CSTRING
+    {
+        return std::ffi::CString::new(str.to_string()).expect("CString::new failed");
+    }
+    
     pub fn to_string(buff :&Vec<C_CHAR>) -> String
     {
         let cstr = unsafe{std::ffi::CStr::from_ptr(buff.as_ptr())};
@@ -215,7 +216,7 @@ pub mod Utility{
             return Err("T size error");
         }
     
-        let funcName=CString::new(funcName).expect("CString::new Fail!");
+        let funcName=std::ffi::CString::new(funcName).expect("CString::new Fail!");
     
         // DLL에서 함수 포인터 얻기
         let pFunc = unsafe {GetProcAddress(dll_handle, funcName.as_ptr())};

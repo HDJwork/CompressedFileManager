@@ -5,6 +5,7 @@ use crate::CompressManager::MinizWrapperDllObj::{
     C_HANDLE,
     C_CHAR,
     C_STR,
+    C_CSTRING,
     C_HANDLE_NULL,
     C_TRUE,
     C_FALSE,
@@ -49,7 +50,7 @@ impl ICompressManager for CompressManagerImpl
         Self::Close(self);
         
         let result = unsafe{
-            let path_C :std::ffi::CString= str_to_CString(self.path.as_str());
+            let path_C :C_CSTRING= str_to_CString(self.path.as_str());
             (self.dllobj.read)(handle_to_ptr(&mut self.readHandle),path_C.as_ptr())
         };
         if result == C_FALSE 
@@ -100,10 +101,26 @@ impl ICompressManager for CompressManagerImpl
         
         return retval;
     }
-    fn Compress(&mut self)->bool
+    fn Compress(&mut self, outputPath:&str, deleteFileList : Box<dyn std::iter::Iterator<Item = String>>)->bool
     {
-        //T.B.D need to work
-        return false;
-
+        let mut strTmpContiner :Vec<C_CSTRING>=Vec::new();
+        let mut strContiner :Vec<C_STR>=Vec::new();
+        for fileName in deleteFileList{
+            strTmpContiner.push(str_to_CString(fileName.as_str()));
+            strContiner.push(strTmpContiner.last().unwrap().as_ptr());
+        }
+        let count = strTmpContiner.len() as i32;
+        
+        let path_C :C_CSTRING= str_to_CString(self.path.as_str());
+        let outputPath_C :C_CSTRING= str_to_CString(outputPath);
+        let result = unsafe{(self.dllobj.recompress)(path_C.as_ptr(),outputPath_C.as_ptr(),strContiner.as_ptr(),count)};
+        if result == C_TRUE{
+            //T.B.D
+            return true;
+        }
+        else {
+            //T.B.D
+            return false;
+        }
     }
 }

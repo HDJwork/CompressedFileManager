@@ -5,7 +5,7 @@ pub trait ICompressManager{
     fn IsOpen(&self)->bool;
     fn Close(&mut self)->bool;
     fn GetFileList(&mut self)->Vec<String>;
-    fn Compress(&mut self)->bool;
+    fn Compress(&mut self, outputPath:&str, deleteFileList : Box<dyn std::iter::Iterator<Item = String>>)->bool;
 }
 
 
@@ -32,7 +32,7 @@ impl ICompressManager for DummyCompressManager
         return vec!["FromDummyClass".to_string()]
 
     }
-    fn Compress(&mut self)->bool
+    fn Compress(&mut self, _outputPath:&str, _deleteFileList : Box<dyn std::iter::Iterator<Item = String>>)->bool
     {
         return false;
     }

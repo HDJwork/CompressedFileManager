@@ -19,18 +19,33 @@ mod tests {
         SingletonManager::startup();
 
         //let mut compressedFile=CompressedFileManager::Open("D:/Develop/CompressedFileManager/TestData/TestData.zip");
-        let mut compressedFile=CompressedFileManager::Open("../TestData/TestData.zip");
-        println!("compressedFile.GetFileList => \r\n{}",ToSummary(compressedFile.GetFileList()));
+        let path="../TestData/TestData.zip";
+        let outputPath="../TestData/TestData1.zip";
+        println!("Open : {}",path);
+        let mut compressedFile=CompressedFileManager::Open(path);
+        let fileList=compressedFile.GetFileList();
+        println!("compressedFile.GetFileList => \r\n{}",ToSummary(&fileList));
+        
+        println!("delete file : {}",fileList[0].as_str());
+        compressedFile.DeleteFile(fileList[0].as_str());
+        compressedFile.Recompress(outputPath);
 
         CompressedFileManager::Close(compressedFile);
 
+        
+        // println!("Open : {}",outputPath);
+        // let mut compressedFile=CompressedFileManager::Open(outputPath);
+        // let fileList=compressedFile.GetFileList();
+        // println!("compressedFile.GetFileList => \r\n{}",ToSummary(&fileList));
+        // CompressedFileManager::Close(compressedFile);
+        
         // let compressedFile=CompressedFileManager::Open("testPath");
         // CompressedFileManager::Close(compressedFile);
         // // let result = add(2, 2);
         // // assert_eq!(result, 4);
         // SingletonManager::cleanup();
     }
-    fn ToSummary(strs:Vec<String>)->String
+    fn ToSummary(strs:&Vec<String>)->String
     {
         let mut retval=String::new();
         

@@ -25,4 +25,5 @@ pub fn Close(compressedFile :Box<CompressedFile>)
         let text=format!("CompressedFileManager::Close => {}",compressedFile.Summarize());
         dbg!(text);
     }
+    
 }

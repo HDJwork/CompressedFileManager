@@ -52,129 +52,146 @@ macro_rules! cstr_to_ptr {
         $cstr.as_ptr() as *const ffi::c_char
     }};
 }
+trait Foo {}
 
-fn main() {
-    // DLL 파일 경로
-    let dll_path = "../../../ref/miniz_DLL.dll";
-    
-    // DLL 파일 경로를 Wide 문자열로 변환
-    let dll_path_wide: Vec<u16> = OsStr::new(dll_path)
-        .encode_wide()
-        .chain(std::iter::once(0))
-        .collect();
+struct Bar {}
 
-    //------------------------------------- DLL Load --------------------------------------
-    // 
-    let dll_handle = unsafe { LoadLibraryW(dll_path_wide.as_ptr()) };
-    if dll_handle.is_null() {
-        println!("DLL Load Fail!");
-        return;
-    }
+impl Foo for Bar {}
 
-    //------------------------------------- DLL Function Load --------------------------------------
-
-    let funcName="MINIZ_LIB_Read";
-    type FnType_MINIZ_LIB_Read = unsafe extern "stdcall" fn(result: C_PTR, filename:* const ffi::c_char)-> C_BOOL;
-    let fn_MINIZ_LIB_Read : FnType_MINIZ_LIB_Read=unsafe {getFunction(dll_handle,funcName).unwrap()};
-    
-    let funcName="MINIZ_LIB_Read_Result_Release";
-    type FnType_MINIZ_LIB_Read_Result_Release = unsafe extern "stdcall" fn(result: C_PTR)-> C_BOOL;
-    let fn_MINIZ_LIB_Read_Result_Release : FnType_MINIZ_LIB_Read_Result_Release=unsafe {getFunction(dll_handle,funcName).unwrap()};
-    
-    let funcName="MINIZ_LIB_Read_Result_GetErrorCode";
-    type FnType_MINIZ_LIB_Read_Result_GetErrorCode = unsafe extern "stdcall" fn(result: C_PTR)-> ffi::c_int;
-    let fn_MINIZ_LIB_Read_Result_GetErrorCode: FnType_MINIZ_LIB_Read_Result_GetErrorCode = unsafe {getFunction(dll_handle,funcName).unwrap()};
-    
-    let funcName="MINIZ_LIB_Read_Result_GetCount";
-    type FnType_MINIZ_LIB_Read_Result_GetCount = unsafe extern "stdcall" fn(result: C_PTR) -> ffi::c_int;
-    let fn_MINIZ_LIB_Read_Result_GetCount: FnType_MINIZ_LIB_Read_Result_GetCount = unsafe {getFunction(dll_handle,funcName).unwrap()};
-
-    //let funcName="MINIZ_LIB_Read_Result_GetFileName";
-    //type FnType_MINIZ_LIB_Read_Result_GetFileName = unsafe extern "stdcall" fn(result: C_PTR, index: ffi::c_int, buff:* const ffi::c_char, buffCount: ffi::c_int) -> C_BOOL;
-    //let fn_MINIZ_LIB_Read_Result_GetFileName: FnType_MINIZ_LIB_Read_Result_GetFileName = unsafe {getFunction(dll_handle,funcName).unwrap()};
-    
-    let funcName="MINIZ_LIB_Read_Result_GetFileName_UTF8";
-    type FnType_MINIZ_LIB_Read_Result_GetFileName_UTF8 = unsafe extern "stdcall" fn(result: C_PTR, index: ffi::c_int, buff:* const ffi::c_char, buffCount: ffi::c_int) -> C_BOOL;
-    let fn_MINIZ_LIB_Read_Result_GetFileName_UTF8: FnType_MINIZ_LIB_Read_Result_GetFileName_UTF8 = unsafe {getFunction(dll_handle,funcName).unwrap()};
-    
-
-    //------------------------------------- Call --------------------------------------
-    //set parameter
-    let mut ptr : ffi::c_ulonglong=0;
-    //let path = "D:/Develop/CompressedFileManager/testproj/TestData/1.zip";
-    //let path = "TestData/1.zip";
-    let path = "TestData/TestData.zip";
-    
-    println!("path : {}",path);
-
-    // 함수 호출
-    unsafe {
-        let readResult: *mut ffi::c_ulonglong = &mut ptr;
-
-        println!("readresult = {}",ptr as u64);
-        println!("STEP : fn_MINIZ_LIB_Read");
-        let cstr = str_to_CString(path);
-        let retval=fn_MINIZ_LIB_Read(readResult, cstr_to_ptr!(cstr));
-        
-        if retval != C_FALSE {
-            println!("readresult = {}",ptr as u64);
-
-            let mut fileNameList : Vec<String> = Vec::new();
-
-            println!("STEP : fn_MINIZ_GetCount");
-            let count = fn_MINIZ_LIB_Read_Result_GetCount(readResult);
-            println!("Count : {}",count);
-            println!("STEP : fn_MINIZ_LIB_Read_Result_GetFileName");
-            for i in 0..count{
-                let mut buff : Vec<ffi::c_char> = Vec::new();
-                buff.resize(200, 0);
-                let retval=fn_MINIZ_LIB_Read_Result_GetFileName_UTF8(readResult,i,buff.as_ptr() as * const ffi::c_char,200);
-                if retval != C_FALSE
-                {
-                    // Vec<ffi::c_char> to String
-                    let cstr = ffi::CStr::from_ptr(buff.as_ptr());
-                    let str:String;
-                    if let Ok(s) = cstr.to_str() {
-                        str=String::from_str(s).expect("String::from_str");
-                    } else {
-                        println!("UTF-8로 변환할 수 없는 문자열입니다.");
-                        // 대체 문자열을 얻기 위해 to_string_lossy() 메서드 사용
-                        let tmp=cstr.to_string_lossy().into_owned();
-                        println!("{}",tmp);
-                        str=tmp;
-                    }
-                    fileNameList.push(str);
-                }
-            }
-            println!("STEP : Show file list");
-            println!("File List : ");
-            for fileName in fileNameList{
-                println!("{}",fileName);
-            }
-            
-        }
-        else{
-
-            println!("read fail!");
-            println!("STEP : fn_MINIZ_LIB_Read_Result_GetErrorCode");
-            println!("errorcode : {}", fn_MINIZ_LIB_Read_Result_GetErrorCode(readResult));
-            println!("readresult = {}",ptr as u64);
-        }
-        println!("STEP : fn_MINIZ_LIB_Read_Result_Release");
-        let retval = fn_MINIZ_LIB_Read_Result_Release(readResult);
-        if retval == C_FALSE{
-            println!(" fn_MINIZ_LIB_Read_Result_Release is Fail!");
-        }
-        println!("readresult = {}",ptr as u64);
-    }
-
-    unsafe{
-        if FreeLibrary(dll_handle) == 0
-        {
-            println!("DLL unload fail!");
-        }
+impl Drop for Bar {
+    fn drop(&mut self) {
+        println!("dropped")
     }
 }
+
+fn main() {
+    //let x = Box::new( Bar {} ) as Box<dyn Foo>;
+    let _y = Option::Some(Box::new( Bar {} ));
+}
+// fn main() {
+
+    
+//     // DLL 파일 경로
+//     let dll_path = "../../../ref/miniz_DLL.dll";
+    
+//     // DLL 파일 경로를 Wide 문자열로 변환
+//     let dll_path_wide: Vec<u16> = OsStr::new(dll_path)
+//         .encode_wide()
+//         .chain(std::iter::once(0))
+//         .collect();
+
+//     //------------------------------------- DLL Load --------------------------------------
+//     // 
+//     let dll_handle = unsafe { LoadLibraryW(dll_path_wide.as_ptr()) };
+//     if dll_handle.is_null() {
+//         println!("DLL Load Fail!");
+//         return;
+//     }
+
+//     //------------------------------------- DLL Function Load --------------------------------------
+
+//     let funcName="MINIZ_LIB_Read";
+//     type FnType_MINIZ_LIB_Read = unsafe extern "stdcall" fn(result: C_PTR, filename:* const ffi::c_char)-> C_BOOL;
+//     let fn_MINIZ_LIB_Read : FnType_MINIZ_LIB_Read=unsafe {getFunction(dll_handle,funcName).unwrap()};
+    
+//     let funcName="MINIZ_LIB_Read_Result_Release";
+//     type FnType_MINIZ_LIB_Read_Result_Release = unsafe extern "stdcall" fn(result: C_PTR)-> C_BOOL;
+//     let fn_MINIZ_LIB_Read_Result_Release : FnType_MINIZ_LIB_Read_Result_Release=unsafe {getFunction(dll_handle,funcName).unwrap()};
+    
+//     let funcName="MINIZ_LIB_Read_Result_GetErrorCode";
+//     type FnType_MINIZ_LIB_Read_Result_GetErrorCode = unsafe extern "stdcall" fn(result: C_PTR)-> ffi::c_int;
+//     let fn_MINIZ_LIB_Read_Result_GetErrorCode: FnType_MINIZ_LIB_Read_Result_GetErrorCode = unsafe {getFunction(dll_handle,funcName).unwrap()};
+    
+//     let funcName="MINIZ_LIB_Read_Result_GetCount";
+//     type FnType_MINIZ_LIB_Read_Result_GetCount = unsafe extern "stdcall" fn(result: C_PTR) -> ffi::c_int;
+//     let fn_MINIZ_LIB_Read_Result_GetCount: FnType_MINIZ_LIB_Read_Result_GetCount = unsafe {getFunction(dll_handle,funcName).unwrap()};
+
+//     //let funcName="MINIZ_LIB_Read_Result_GetFileName";
+//     //type FnType_MINIZ_LIB_Read_Result_GetFileName = unsafe extern "stdcall" fn(result: C_PTR, index: ffi::c_int, buff:* const ffi::c_char, buffCount: ffi::c_int) -> C_BOOL;
+//     //let fn_MINIZ_LIB_Read_Result_GetFileName: FnType_MINIZ_LIB_Read_Result_GetFileName = unsafe {getFunction(dll_handle,funcName).unwrap()};
+    
+//     let funcName="MINIZ_LIB_Read_Result_GetFileName_UTF8";
+//     type FnType_MINIZ_LIB_Read_Result_GetFileName_UTF8 = unsafe extern "stdcall" fn(result: C_PTR, index: ffi::c_int, buff:* const ffi::c_char, buffCount: ffi::c_int) -> C_BOOL;
+//     let fn_MINIZ_LIB_Read_Result_GetFileName_UTF8: FnType_MINIZ_LIB_Read_Result_GetFileName_UTF8 = unsafe {getFunction(dll_handle,funcName).unwrap()};
+    
+
+//     //------------------------------------- Call --------------------------------------
+//     //set parameter
+//     let mut ptr : ffi::c_ulonglong=0;
+//     //let path = "D:/Develop/CompressedFileManager/testproj/TestData/1.zip";
+//     //let path = "TestData/1.zip";
+//     let path = "TestData/TestData.zip";
+    
+//     println!("path : {}",path);
+
+//     // 함수 호출
+//     unsafe {
+//         let readResult: *mut ffi::c_ulonglong = &mut ptr;
+
+//         println!("readresult = {}",ptr as u64);
+//         println!("STEP : fn_MINIZ_LIB_Read");
+//         let cstr = str_to_CString(path);
+//         let retval=fn_MINIZ_LIB_Read(readResult, cstr_to_ptr!(cstr));
+        
+//         if retval != C_FALSE {
+//             println!("readresult = {}",ptr as u64);
+
+//             let mut fileNameList : Vec<String> = Vec::new();
+
+//             println!("STEP : fn_MINIZ_GetCount");
+//             let count = fn_MINIZ_LIB_Read_Result_GetCount(readResult);
+//             println!("Count : {}",count);
+//             println!("STEP : fn_MINIZ_LIB_Read_Result_GetFileName");
+//             for i in 0..count{
+//                 let mut buff : Vec<ffi::c_char> = Vec::new();
+//                 buff.resize(200, 0);
+//                 let retval=fn_MINIZ_LIB_Read_Result_GetFileName_UTF8(readResult,i,buff.as_ptr() as * const ffi::c_char,200);
+//                 if retval != C_FALSE
+//                 {
+//                     // Vec<ffi::c_char> to String
+//                     let cstr = ffi::CStr::from_ptr(buff.as_ptr());
+//                     let str:String;
+//                     if let Ok(s) = cstr.to_str() {
+//                         str=String::from_str(s).expect("String::from_str");
+//                     } else {
+//                         println!("UTF-8로 변환할 수 없는 문자열입니다.");
+//                         // 대체 문자열을 얻기 위해 to_string_lossy() 메서드 사용
+//                         let tmp=cstr.to_string_lossy().into_owned();
+//                         println!("{}",tmp);
+//                         str=tmp;
+//                     }
+//                     fileNameList.push(str);
+//                 }
+//             }
+//             println!("STEP : Show file list");
+//             println!("File List : ");
+//             for fileName in fileNameList{
+//                 println!("{}",fileName);
+//             }
+            
+//         }
+//         else{
+
+//             println!("read fail!");
+//             println!("STEP : fn_MINIZ_LIB_Read_Result_GetErrorCode");
+//             println!("errorcode : {}", fn_MINIZ_LIB_Read_Result_GetErrorCode(readResult));
+//             println!("readresult = {}",ptr as u64);
+//         }
+//         println!("STEP : fn_MINIZ_LIB_Read_Result_Release");
+//         let retval = fn_MINIZ_LIB_Read_Result_Release(readResult);
+//         if retval == C_FALSE{
+//             println!(" fn_MINIZ_LIB_Read_Result_Release is Fail!");
+//         }
+//         println!("readresult = {}",ptr as u64);
+//     }
+
+//     unsafe{
+//         if FreeLibrary(dll_handle) == 0
+//         {
+//             println!("DLL unload fail!");
+//         }
+//     }
+// }
 
 // test C DLL Link from ffi
 //use std::ffi;

@@ -17,16 +17,16 @@ pub struct CompressedFile
 
 impl CompressedFile{
     
-    pub fn Create(path:&str)-> Box<CompressedFile>
+    pub fn new(path:&str)-> CompressedFile
     {
-    
+        use crate::CompressManager::CompressManagerImpl::CompressManagerImpl;
         //T.B.D Test code
         #[cfg(debug_assertions)]
-        return Box::new(CompressedFile{
+        return CompressedFile{
             path: String::from(path),
             id: Self::getID(),
-            manager: Box::new(crate::CompressManager::ICompressManager::DummyCompressManager{}),
-        });
+            manager: Box::new(CompressManagerImpl::new()),
+        };
     }
 
     pub fn GetFileList(&self)->Vec<String>

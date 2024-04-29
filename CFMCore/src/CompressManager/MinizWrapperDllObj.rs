@@ -36,14 +36,10 @@ type FnType_MINIZ_LIB_Preview_Result_GetFilePath = unsafe extern "stdcall" fn(re
 
 
 //---------------------------------------------------------- Struct --------------------------------------------------------------------
-struct HandleContainer{
-    dll_handle :usize,
-}
-
-#[derive(Copy, Clone)]
+//#[derive(Copy, Clone)]
 pub struct MinizWrapperDllObj
 {
-    //dll_handle :*mut winapi::shared::minwindef::HINSTANCE__,
+    dll_handle :usize,
 
     pub read : FnType_MINIZ_LIB_Read,
     pub readResult_Release : FnType_MINIZ_LIB_Read_Result_Release,
@@ -57,7 +53,7 @@ pub struct MinizWrapperDllObj
     pub previewResult_GetFilePath : FnType_MINIZ_LIB_Preview_Result_GetFilePath,
 }
 
-impl Drop for HandleContainer
+impl Drop for MinizWrapperDllObj
 {
     fn drop(&mut self){
         use winapi::um::libloaderapi::FreeLibrary;   
@@ -69,29 +65,33 @@ impl Drop for HandleContainer
     }
 }
 
-lazy_static!{
-    static ref INSTANCE: Mutex<Option<(Box<HandleContainer>,MinizWrapperDllObj)>>=Mutex::new(None) ;
-}
+static mut INSTANCE : Option<&'static mut MinizWrapperDllObj> = None;
 
-
-
-impl MinizWrapperDllObj
-{
-    pub fn new() -> MinizWrapperDllObj
-    {
-        let mut guard=INSTANCE.lock().unwrap();
-        if (*guard).is_none()
-        {
-            *guard=Some(Self::new_Impl());
+impl MinizWrapperDllObj{
+    pub fn instance() -> &'static mut MinizWrapperDllObj {
+        unsafe {
+            match INSTANCE {
+                Option::Some(ref mut manager) => *manager,
+                Option::None => {
+                    println!("new instance!");
+                    let manager_box = Box::new(Self::new_Impl());
+                    let manager_raw = Box::into_raw(manager_box);
+                    INSTANCE = Some(&mut *manager_raw);
+                    &mut *manager_raw
+                }
+            }
         }
-        let tuple=(*guard).as_ref().unwrap();
-
-        //let mut guard=INSTANCE.lock().unwrap();
-        //return guard.unwrap();
-
-        return tuple.1;
     }
-    fn new_Impl() -> (Box<HandleContainer>,MinizWrapperDllObj){
+
+    pub fn destroy() {
+        unsafe {
+            if let Some(raw) = std::mem::replace(&mut INSTANCE, None) {
+                Box::from_raw(raw);
+            }
+        }
+    }
+
+    fn new_Impl() -> MinizWrapperDllObj{
 
         use std::os::windows::ffi::OsStrExt;
         use std::ffi::OsStr;
@@ -118,6 +118,7 @@ impl MinizWrapperDllObj
         use Utility::getFunction as getFunc;
         let retval =  unsafe {
             MinizWrapperDllObj{
+                dll_handle:std::mem::transmute(dll_handle),
                 read 
                 : getFunc("MINIZ_LIB_Read_UTF8",dll_handle).unwrap(),
                 readResult_Release 
@@ -143,7 +144,7 @@ impl MinizWrapperDllObj
         };
         println!("DLL Load Success!");
 
-        return (Box::new(HandleContainer{dll_handle:unsafe {std::mem::transmute(dll_handle)}}), retval);
+        return retval;
     }
 
 }

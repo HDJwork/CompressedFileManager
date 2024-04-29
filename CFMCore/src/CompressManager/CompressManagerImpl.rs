@@ -6,14 +6,14 @@ use crate::CompressManager::MinizWrapperDllObj::MinizWrapperDllObj;
 pub struct CompressManagerImpl
 {
     bOpen : bool,
-    dllobj : MinizWrapperDllObj
+    dllobj :  &'static mut MinizWrapperDllObj
 }
 impl CompressManagerImpl{
     pub fn new()->CompressManagerImpl
     {
         CompressManagerImpl{
             bOpen:false,
-            dllobj:MinizWrapperDllObj::new(),
+            dllobj:MinizWrapperDllObj::instance(),
         }
     }
 }

@@ -6,6 +6,7 @@ mod CompressedFile;
 mod CompressManager;
 mod PreviewedFile;
 mod Type;
+mod SingletonManager;
 
 
 #[cfg(test)]
@@ -15,6 +16,8 @@ mod tests {
 
     #[test]
     fn it_works() {
+        SingletonManager::startup();
+
         let compressedFile=CompressedFileManager::Open("testPath");
         println!("compressedFile.GetFileList => \r\n{}",ToSummary(compressedFile.GetFileList()));
         
@@ -23,6 +26,7 @@ mod tests {
         CompressedFileManager::Close(compressedFile);
         // let result = add(2, 2);
         // assert_eq!(result, 4);
+        SingletonManager::cleanup();
     }
     fn ToSummary(strs:Vec<String>)->String
     {

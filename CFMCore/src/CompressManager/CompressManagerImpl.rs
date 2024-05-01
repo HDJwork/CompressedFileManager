@@ -1,6 +1,8 @@
 #![allow(non_snake_case)]
+use super::ICompressManager::*;
+use std::iter::Iterator;
+use std::collections::HashMap;
 
-use crate::CompressManager::ICompressManager::ICompressManager;
 use crate::CompressManager::MinizWrapperDllObj::{
     C_HANDLE,
     C_CHAR,
@@ -18,20 +20,26 @@ use crate::CompressManager::MinizWrapperDllObj::Utility::{
 };
 use crate::CompressManager::MinizWrapperDllObj::MinizWrapperDllObj;
 
+struct PreviewResult{
+    previewHandle : C_HANDLE,
+    previewedFile:Box<dyn IPreviewedFile>,
+}
 pub struct CompressManagerImpl
 {
     path : String,
     dllobj :  &'static mut MinizWrapperDllObj,
     readHandle : C_HANDLE,
+    previewList : HashMap<String,PreviewResult>
 }
 
 impl CompressManagerImpl{
     pub fn new(path : &str)->CompressManagerImpl
     {
         CompressManagerImpl{
-            path:path.to_string(),
-            dllobj:MinizWrapperDllObj::instance(),
-            readHandle:C_HANDLE_NULL,
+            path : path.to_string(),
+            dllobj : MinizWrapperDllObj::instance(),
+            readHandle : C_HANDLE_NULL,
+            previewList : HashMap::new(),
         }
     }
 }
@@ -45,8 +53,8 @@ impl Drop for CompressManagerImpl{
 impl ICompressManager for CompressManagerImpl
 {
     fn IsOpen(&self)->bool   {   return self.readHandle!=C_HANDLE_NULL;   }
-    fn Open(&mut self)->bool
-    {
+
+    fn Open(&mut self)->bool    {
         Self::Close(self);
         
         let result = unsafe{
@@ -67,17 +75,21 @@ impl ICompressManager for CompressManagerImpl
         println!("[CompressManagerImpl]Open {}",self.readHandle);
         return true;
     }
-    fn Close(&mut self)->bool
-    {
-        if !Self::IsOpen(&self) { return false; }
 
-        println!("[CompressManagerImpl]Close {}",self.readHandle);
+    fn Close(&mut self)->bool    {
+        if !Self::IsOpen(&self) { return false; }
+        for preview in &mut self.previewList{
+            println!("[CompressManagerImpl]Close => previewHandle{}",preview.1.previewHandle);
+            unsafe {(self.dllobj.previewResult_Release)(handle_to_ptr(&mut preview.1.previewHandle));}
+        }
+        self.previewList.clear();
+        println!("[CompressManagerImpl]Close => readHandle{}",self.readHandle);
         unsafe {(self.dllobj.readResult_Release)(handle_to_ptr(&mut self.readHandle));}
         return self.readHandle == C_HANDLE_NULL;
 
     }
-    fn GetFileList(&mut self)->Vec<String>
-    {
+
+    fn GetFileList(&mut self)->Vec<String>    {
         let mut retval :Vec<String> =Vec::new();
         if !Self::IsOpen(self)
         {
@@ -101,8 +113,8 @@ impl ICompressManager for CompressManagerImpl
         
         return retval;
     }
-    fn Compress(&mut self, outputPath:&str, deleteFileList : Box<dyn std::iter::Iterator<Item = String>>)->bool
-    {
+
+    fn Compress(&mut self, outputPath:&str, deleteFileList : Box<dyn Iterator<Item = String>>)->bool    {
         let mut strTmpContiner :Vec<C_CSTRING>=Vec::new();
         let mut strContiner :Vec<C_STR>=Vec::new();
         for fileName in deleteFileList{
@@ -122,5 +134,38 @@ impl ICompressManager for CompressManagerImpl
             //T.B.D
             return false;
         }
+    }
+
+    fn PreviewFile(&mut self, file:&str)->Result<&Box<dyn IPreviewedFile>,String>    {
+
+        use crate::PreviewedFile::PreviewedFileBuilder;
+        let key = String::from(file);
+        if !self.previewList.contains_key(&key){
+            let previewHandle = unsafe{
+                let mut handle :C_HANDLE = C_HANDLE_NULL;
+                let ptr_read = handle_to_ptr(&mut self.readHandle);
+                let ptr = handle_to_ptr(&mut handle);
+                let path_C :C_CSTRING= str_to_CString(file);
+                if (self.dllobj.preview)(ptr,ptr_read,path_C.as_ptr()) == C_FALSE{
+                    let errorCode = (self.dllobj.previewResult_GetErrorCode)(ptr);
+                    (self.dllobj.previewResult_Release)(ptr);
+                    return Err(format!("ErrorCode = {}",errorCode));
+                }
+                handle
+            };
+            match PreviewedFileBuilder::buildPreviewedFile(&file){
+                Ok(previewedFile)=>{
+                    self.previewList.insert(key.clone(),
+                        PreviewResult{
+                            previewedFile:previewedFile,
+                            previewHandle:previewHandle
+                        }
+                    );
+                }
+                Err(e)=>{return Err(e)}
+            }
+        }
+        
+        return Ok(&self.previewList[&key].previewedFile);
     }
 }

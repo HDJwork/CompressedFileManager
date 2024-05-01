@@ -1,18 +1,20 @@
 #![allow(non_snake_case)]
 
+pub use crate::PreviewedFile::IPreviewedFile::IPreviewedFile;
+
 pub trait ICompressManager{
     fn Open(&mut self)->bool;
     fn IsOpen(&self)->bool;
     fn Close(&mut self)->bool;
     fn GetFileList(&mut self)->Vec<String>;
     fn Compress(&mut self, outputPath:&str, deleteFileList : Box<dyn std::iter::Iterator<Item = String>>)->bool;
+    fn PreviewFile(&mut self, file:&str)->Result<&Box<dyn IPreviewedFile>,String>;
 }
 
 
 #[cfg(debug_assertions)]
 pub struct DummyCompressManager
 {
-
 }
 
 #[cfg(debug_assertions)]
@@ -36,4 +38,9 @@ impl ICompressManager for DummyCompressManager
     {
         return false;
     }
+    fn PreviewFile(&mut self, _file:&str)->Result<&Box<dyn IPreviewedFile>,String>
+    {
+        return Err(String::from("Object Is Dummy"));
+    }
+
 }

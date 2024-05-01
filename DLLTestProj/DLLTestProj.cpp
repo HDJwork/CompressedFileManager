@@ -35,7 +35,7 @@ int main()
     
     //auto filePath = "D:/Develop/CompressedFileManager/testproj/TestData/ㄱㄴ/TestData.zip";
     //if (MINIZ_LIB_Read(ptr, filePath))
-    auto _filePath = multibyte_to_utf8("D:/Develop/CompressedFileManager/testproj/TestData/ㄱㄴ/TestData.zip");
+    auto _filePath = multibyte_to_utf8("D:/Develop/CompressedFileManager/TestData/TestData.zip");
     auto filePath = _filePath.c_str();
     if (MINIZ_LIB_Read_UTF8(ptr, filePath))
     {
@@ -79,44 +79,23 @@ int main()
     MINIZ_LIB_Read_Result_Release(ptr);
     std::cout << "ptr : " << ptr << std::endl;
 
-    auto _outputPath = multibyte_to_utf8("D:\\Develop\\CompOutput\\ㄱㄴ");
-    auto outputPath = _outputPath.c_str();
-    if (!MINIZ_LIB_InitDirectory_CleanUp_UTF8(outputPath))
-        std::cout << "fail!" << std::endl;
-    if (!MINIZ_LIB_Unzip_UTF8(filePath, outputPath))
-        std::cout << "fail!" << std::endl;
-    auto _zipPath = multibyte_to_utf8("D:/Develop/CompressedFileManager/testproj/TestData/ㄷㄹ/TestData2.zip");
-    auto zipPath = _zipPath.c_str();
-    if (!MINIZ_LIB_Zip_UTF8(outputPath, zipPath, nullptr, 0))
-        std::cout << "fail!" << std::endl;
-
-    auto _zipPath2 = multibyte_to_utf8("D:/Develop/CompressedFileManager/testproj/TestData/ㄷㄹ/TestData3.zip");
-    auto zipPath2 = _zipPath2.c_str();
-    v = { _v[0].c_str(),_v[1].c_str()};
-    if (!MINIZ_LIB_Zip_UTF8(outputPath, zipPath2, v.data(), static_cast<int>(v.size())))
-        std::cout << "fail!" << std::endl;
-    auto _zipPath3 = multibyte_to_utf8("D:/Develop/CompressedFileManager/testproj/TestData/ㄷㄹ/TestData4.zip");
+    auto _zipPath3 = multibyte_to_utf8("D:/Develop/CompressedFileManager/TestData/ㄷㄹ/TestData4.zip");
     auto zipPath3 = _zipPath3.c_str();
     /*std::vector<const char*>*/ v = { _v[0].c_str() };
     if (!MINIZ_LIB_Recompress_UTF8(filePath, zipPath3, v.data(), static_cast<int>(v.size())))
         std::cout << "fail!" << std::endl;
 
 
-    //auto outputPath = "D:\\Develop\\CompOutput\\ㄱㄴ";
-    //if (!MINIZ_LIB_InitDirectory_CleanUp(outputPath))
-    //    std::cout << "fail!" << std::endl;
-    //if (!MINIZ_LIB_Unzip_(filePath, outputPath))
-    //    std::cout << "fail!" << std::endl;
-    //auto zipPath = "D:/Develop/CompressedFileManager/testproj/TestData/ㄷㄹ/TestData2.zip";
-    //if (!MINIZ_LIB_Zip(outputPath, zipPath, nullptr, 0))
-    //    std::cout << "fail!" << std::endl;
+    if (MINIZ_LIB_Read_UTF8(ptr, zipPath3))
+    {
 
-    //auto zipPath2 = "D:/Develop/CompressedFileManager/testproj/TestData/ㄷㄹ/TestData3.zip";
-    //std::vector<const char*> v = { "1.txt","B\\ㅂㅂㅂ.txt" };
-    //if (!MINIZ_LIB_Zip(outputPath, zipPath2, v.data(), static_cast<int>(v.size())))
-    //    std::cout << "fail!" << std::endl;
-    //auto zipPath3 = "D:/Develop/CompressedFileManager/testproj/TestData/ㄷㄹ/TestData4.zip";
-    ///*std::vector<const char*>*/ v = { "B\\1.txt" };
-    //if (!MINIZ_LIB_Recompress(filePath, zipPath3, v.data(), static_cast<int>(v.size())))
-    //    std::cout << "fail!" << std::endl;
+    }
+    else
+    {
+        std::cout << "read fail!" << std::endl;
+        std::cout << "error code : " << MINIZ_LIB_Read_Result_GetErrorCode(ptr) << std::endl;
+
+    }
+    MINIZ_LIB_Read_Result_Release(ptr);
+    std::cout << "ptr : " << ptr << std::endl;
 }

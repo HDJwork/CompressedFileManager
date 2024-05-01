@@ -51,6 +51,36 @@ struct OutputData_Preview {
 };
 
 //---------------------------------------- Support Function ---------------------------------------- 
+bool is_utf8_encoded(const std::string& str) {
+	for (size_t i = 0; i < str.size(); ++i) {
+		unsigned char byte = static_cast<unsigned char>(str[i]);
+		if (byte <= 0x7F) { // ASCII 문자
+			continue;
+		}
+		else if ((byte & 0xE0) == 0xC0) { // 2바이트 문자의 첫 바이트
+			if (i + 1 >= str.size() || (str[i + 1] & 0xC0) != 0x80) {
+				return false;
+			}
+			++i;
+		}
+		else if ((byte & 0xF0) == 0xE0) { // 3바이트 문자의 첫 바이트
+			if (i + 2 >= str.size() || (str[i + 1] & 0xC0) != 0x80 || (str[i + 2] & 0xC0) != 0x80) {
+				return false;
+			}
+			i += 2;
+		}
+		else if ((byte & 0xF8) == 0xF0) { // 4바이트 문자의 첫 바이트
+			if (i + 3 >= str.size() || (str[i + 1] & 0xC0) != 0x80 || (str[i + 2] & 0xC0) != 0x80 || (str[i + 3] & 0xC0) != 0x80) {
+				return false;
+			}
+			i += 3;
+		}
+		else {
+			return false; // 유효하지 않은 UTF-8 바이트 패턴
+		}
+	}
+	return true;
+}
 
 std::string multibyte_to_utf8(const std::string& str)
 {
@@ -234,7 +264,11 @@ BOOL MINIZ_LIB_Read_Impl(OutputData_Read& result, std::string path)
 			result.errorcode = ERROR_READER_GET_FILENAME_FAIL;
 			return BOOL_FALSE;
 		}
-		std::filesystem::path _filename = buff;
+		std::filesystem::path _filename;
+		if (is_utf8_encoded(buff))
+			_filename = utf8_to_multibyte(buff);
+		else
+			_filename = buff;
 		auto fileName = _filename.lexically_normal().string();
 		result.fileList.push_back(fileName);
 		result.fileNameMap[fileName] = i;
@@ -493,7 +527,7 @@ BOOL MINIZ_LIB_Zip(const char* _targetDir, const char* _resultPath, const char**
 
 		if (!mz_zip_writer_add_file(
 			&zip_archive, 
-			multibyte_to_utf8(relativePath).c_str(),
+			relativePath.c_str(),
 			multibyte_to_utf8(subFile).c_str(),
 			NULL, 0, MZ_BEST_COMPRESSION))
 		{

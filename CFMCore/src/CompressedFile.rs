@@ -88,6 +88,7 @@ impl CompressedFile{
 impl Drop for CompressedFile{
     fn drop(&mut self)
     {
+        dbg!("CompressedFile.drop!");
         self.manager.Close();
     }
 }

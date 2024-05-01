@@ -33,17 +33,16 @@ mod tests {
         CompressedFileManager::Close(compressedFile);
 
         
-        // println!("Open : {}",outputPath);
-        // let mut compressedFile=CompressedFileManager::Open(outputPath);
-        // let fileList=compressedFile.GetFileList();
-        // println!("compressedFile.GetFileList => \r\n{}",ToSummary(&fileList));
-        // CompressedFileManager::Close(compressedFile);
+        println!("Open : {}",outputPath);
+        let mut compressedFile=CompressedFileManager::Open(outputPath);
+        let fileList=compressedFile.GetFileList();
+        println!("compressedFile.GetFileList => \r\n{}",ToSummary(&fileList));
+        CompressedFileManager::Close(compressedFile);
         
-        // let compressedFile=CompressedFileManager::Open("testPath");
-        // CompressedFileManager::Close(compressedFile);
         // // let result = add(2, 2);
         // // assert_eq!(result, 4);
-        // SingletonManager::cleanup();
+
+        SingletonManager::cleanup();
     }
     fn ToSummary(strs:&Vec<String>)->String
     {

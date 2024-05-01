@@ -141,7 +141,7 @@ impl ICompressManager for CompressManagerImpl
         use crate::previewed_file::previewed_file_builder;
         let key = String::from(file);
         if !self.previewList.contains_key(&key){
-            let previewHandle = unsafe{
+            let resultPair = unsafe{
                 let mut handle :C_HANDLE = C_HANDLE_NULL;
                 let ptr_read = handle_to_ptr(&mut self.readHandle);
                 let ptr = handle_to_ptr(&mut handle);
@@ -149,16 +149,24 @@ impl ICompressManager for CompressManagerImpl
                 if (self.dllobj.preview)(ptr,ptr_read,path_C.as_ptr()) == C_FALSE{
                     let errorCode = (self.dllobj.previewResult_GetErrorCode)(ptr);
                     (self.dllobj.previewResult_Release)(ptr);
-                    return Err(format!("ErrorCode = {}",errorCode));
+                    return Err(format!("previewResult fail, ErrorCode = {}",errorCode))
                 }
-                handle
+                
+                let mut buff : Vec<C_CHAR> = Vec::new();
+                buff.resize(C_BUFFER_MAX as usize, 0);
+                let result=(self.dllobj.previewResult_GetFilePath)(ptr,buff.as_ptr() as C_STR,C_BUFFER_MAX);
+                if result == C_FALSE{
+                    return Err(String::from("previewResult_GetFilePath fail!"))
+
+                }
+                (handle,to_string(&buff))
             };
-            match previewed_file_builder::buildPreviewedFile(&file){
+            match previewed_file_builder::buildPreviewedFile(resultPair.1.as_str()){
                 Ok(previewedFile)=>{
                     self.previewList.insert(key.clone(),
                         PreviewResult{
                             previewedFile:previewedFile,
-                            previewHandle:previewHandle
+                            previewHandle:resultPair.0,
                         }
                     );
                 }

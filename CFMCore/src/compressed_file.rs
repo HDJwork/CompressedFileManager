@@ -21,8 +21,7 @@ pub struct CompressedFile
 
 impl CompressedFile{
     
-    pub fn new(path:&str)-> CompressedFile
-    {
+    pub fn new(path:&str)-> CompressedFile    {
         use super::compress_manager::compress_manager_impl::CompressManagerImpl;
         let mut retval = CompressedFile{
             path: String::from(path),
@@ -37,8 +36,7 @@ impl CompressedFile{
         return retval;
     }
 
-    pub fn GetFileList(&mut self)->Vec<String>
-    {
+    pub fn GetFileList(&mut self)->Vec<String>    {
         if self.fileList.is_empty(){
             if !self.manager.IsOpen(){
                 if !self.manager.Open(){
@@ -49,46 +47,42 @@ impl CompressedFile{
         }
         return self.fileList.clone();
     }
-    pub fn Recompress(&mut self, path:&str)->bool
-    {
+    
+    pub fn Recompress(&mut self, path:&str)->bool    {
         return self.manager.Compress(path,Box::new(self.deleteFileList.clone().into_iter()));
     }
-    pub fn DeleteFile(&mut self, file:&str)->bool
-    {
+    
+    pub fn DeleteFile(&mut self, file:&str)->bool    {
         return self.deleteFileList.insert(String::from(file));
     }
-    pub fn RevertDeletedFile(&mut self, file:&str)->bool
-    {
+    
+    pub fn RevertDeletedFile(&mut self, file:&str)->bool    {
         let strFile =String::from(file);
         return self.deleteFileList.remove(&strFile);
     }
-    pub fn IsChanged(&self)->bool
-    {
+    
+    pub fn IsChanged(&self)->bool    {
         return !self.deleteFileList.is_empty()
     }
-    pub fn PreviewFile(&mut self)->Box<dyn IPreviewedFile>
-    {
-        //T.B.D
-        #[cfg(debug_assertions)]
-        return Box::new(super::previewed_file::i_previewed_file::DummyPreviewedFile{});
+    
+    pub fn PreviewFile(&mut self,file:&str)->Result<&Box<dyn IPreviewedFile>,String>    {
+        return self.manager.PreviewFile(file);
     }
 
     #[cfg(debug_assertions)]
-    pub fn Summarize(&self) -> String
-    {
+    pub fn Summarize(&self) -> String    {
         return String::from(self.id.to_string()+"("+ &self.path +")");
     }
+    
     #[cfg(debug_assertions)]
-    fn getID() -> usize
-    {
+    fn getID() -> usize    {
         static COUNTER: AtomicUsize = AtomicUsize::new(0);
         COUNTER.store(COUNTER.load(Ordering::Relaxed)+1,Ordering::Relaxed);
         return COUNTER.load(Ordering::Relaxed);
     }
 }
 impl Drop for CompressedFile{
-    fn drop(&mut self)
-    {
+    fn drop(&mut self)    {
         dbg!("CompressedFile.drop!");
         self.manager.Close();
     }

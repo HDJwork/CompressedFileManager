@@ -92,6 +92,7 @@ impl MinizWrapperDllObj{
 
     pub fn destroy() {
         unsafe {
+            #[allow(static_mut_refs)]
             if let Some(raw) = std::mem::replace(&mut INSTANCE, None) {
                 let _ = Box::from_raw(raw);
             }
@@ -143,9 +144,9 @@ impl MinizWrapperDllObj{
                 previewResult_Release 
                 : getFunc("MINIZ_LIB_Preview_Result_Release",dll_handle).unwrap(),
                 previewResult_GetErrorCode
-                : getFunc("MINIZ_LIB_Preview_Result_GetTempFilePath_UTF8",dll_handle).unwrap(),
+                : getFunc("MINIZ_LIB_Preview_Result_GetErrorCode",dll_handle).unwrap(),
                 previewResult_GetFilePath
-                : getFunc("MINIZ_LIB_Recompress_UTF8",dll_handle).unwrap(),
+                : getFunc("MINIZ_LIB_Preview_Result_GetTempFilePath_UTF8",dll_handle).unwrap(),
             
             }
         };

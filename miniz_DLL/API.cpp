@@ -779,7 +779,7 @@ BOOL MINIZ_LIB_Preview_Result_GetTempFilePath_UTF8(PTR* _result, char* outputBuf
 {
 	OutputData_Preview& result = *reinterpret_cast<OutputData_Preview*>(*_result);
 	
-	if (std::filesystem::exists(result.path))
+	if (!std::filesystem::exists(result.path))
 		return BOOL_FALSE;
 
 	std::string str = result.path.string();

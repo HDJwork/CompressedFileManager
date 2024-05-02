@@ -1,28 +1,15 @@
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]
 
+use crate::utility_c::Type_C::*;
+use crate::utility_c::Utility_C;
+
 //use std::sync::{Arc,Mutex};
 //use std::cell::OnceCell;
 
 //#[macro_use]
 //extern crate lazy_static;
 //use lazy_static::lazy_static;
-//---------------------------------------------------------- Type Definition --------------------------------------------------------------------
-//C Type
-pub type C_HANDLE = std::ffi::c_ulonglong;
-pub type C_PTR = * mut C_HANDLE;
-pub type C_BOOL = std::ffi::c_int;
-pub type C_INT = std::ffi::c_int;
-pub type C_CHAR = std::ffi::c_char;
-pub type C_STR = * const C_CHAR;
-pub type C_STRS = * const C_STR;
-pub type C_CSTRING = std::ffi::CString;
-
-#[allow(dead_code)]
-pub const C_TRUE : C_BOOL = 1;
-pub const C_FALSE : C_BOOL = 0;
-pub const C_HANDLE_NULL : C_HANDLE = 0;
-pub const C_BUFFER_MAX : C_INT = 200;
 
 //pub type MinizWrapperDllObj_Static = &'static mut MinizWrapperDllObj;
 
@@ -123,7 +110,7 @@ impl MinizWrapperDllObj{
             panic!("DLL Load Fail!");
         }
 
-        use Utility::getFunction as getFunc;
+        use Utility_C::getFunction as getFunc;
         let retval =  unsafe {
             MinizWrapperDllObj{
                 dll_handle:std::mem::transmute(dll_handle),
@@ -161,79 +148,3 @@ impl MinizWrapperDllObj{
     
 
 //---------------------------------------------------------- Utility --------------------------------------------------------------------
-
-pub mod Utility{
-    use crate::compress_manager::miniz_wrapper_dll_obj::{
-        C_HANDLE,
-        C_PTR,
-        C_CHAR,
-        C_CSTRING,
-    };
-
-    pub fn handle_to_ptr(handle:& mut C_HANDLE) -> C_PTR
-    {
-        let readResult: *mut std::ffi::c_ulonglong = handle as *mut C_HANDLE;
-        return readResult;
-    }
-
-    #[allow(unused_macros)]
-    macro_rules! cstr_to_ptr {
-        ($cstr:expr) => {{
-            $cstr.as_ptr() as *const std::ffi::c_char
-        }};
-    }
-    
-    pub fn str_to_CString(str:&str) -> C_CSTRING
-    {
-        return std::ffi::CString::new(str.to_string()).expect("CString::new failed");
-    }
-    
-    pub fn to_string(buff :&Vec<C_CHAR>) -> String
-    {
-        let cstr = unsafe{std::ffi::CStr::from_ptr(buff.as_ptr())};
-        let str:String;
-        if let Ok(s) = cstr.to_str() {
-            use std::str::FromStr;
-            str=String::from_str(s).expect("String::from_str");
-        } else {
-            println!("UTF-8로 변환할 수 없는 문자열입니다.");
-            // 대체 문자열을 얻기 위해 to_string_lossy() 메서드 사용
-            let tmp=cstr.to_string_lossy().into_owned();
-            println!("{}",tmp);
-            str=tmp;
-        }
-        return str;
-    }
-    
-    pub unsafe fn getFunction<T : Sized>(
-        funcName:&str
-        ,dll_handle:*mut winapi::shared::minwindef::HINSTANCE__
-        ) -> Result<T,&str>
-    {
-        use winapi::um::libloaderapi::GetProcAddress;
-
-        let size = std::mem::size_of::<T>();
-        if size != 8{
-            return Err("T size error");
-        }
-    
-        let funcName=std::ffi::CString::new(funcName).expect("CString::new Fail!");
-    
-        // DLL에서 함수 포인터 얻기
-        let pFunc = unsafe {GetProcAddress(dll_handle, funcName.as_ptr())};
-        
-        if pFunc.is_null() {
-            println!("함수 '{}' 찾을 수 없음", funcName.to_str().unwrap());
-            panic!("Function '{}' not founded", funcName.to_str().unwrap());
-            //return Err("Function not founded");
-        }
-    
-        // 함수 시그니처에 맞게 타입 캐스팅
-        let func: T = unsafe 
-        {
-            std::mem::transmute_copy(&pFunc)
-        };
-        return Ok(func);
-    }
-    
-}

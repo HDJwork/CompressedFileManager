@@ -8,7 +8,6 @@ use super::compress_manager::ICompressManager;
 use super::previewed_file::IPreviewedFile;
 use std::collections::HashSet;
 
-//T.B.D Dummy code
 pub struct CompressedFile
 {
     path : String,
@@ -34,6 +33,31 @@ impl CompressedFile{
             retval.fileList = retval.manager.GetFileList();
         }
         return retval;
+    }
+    pub fn new_without_open(path:&str)-> CompressedFile    {
+        use super::compress_manager::compress_manager_impl::CompressManagerImpl;
+        let mut retval = CompressedFile{
+            path: String::from(path),
+            id: Self::getID(),
+            manager: Box::new(CompressManagerImpl::new(path)),
+            fileList : Vec::new(),
+            deleteFileList : HashSet::new(),
+        };
+        if retval.manager.Open(){
+            retval.fileList = retval.manager.GetFileList();
+        }
+        return retval;
+    }
+    pub fn Open(&mut self)->bool    {
+        match self.manager.Open(){
+            true=>{
+                self.fileList = self.manager.GetFileList();
+                return true;
+            },
+            false=>{
+                return false;
+            }
+        }
     }
 
     pub fn GetFileList(&mut self)->Vec<String>    {

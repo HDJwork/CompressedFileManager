@@ -7,12 +7,13 @@ mod compress_manager;
 mod previewed_file;
 mod custom_type;
 mod singleton_manager;
-
+mod utility_c;
 
 
 
 #[cfg(test)]
 mod tests {
+
 
     use super::*;
     fn to_summary(strs:&Vec<String>)->String    {
@@ -30,6 +31,7 @@ mod tests {
 
     #[test]
     fn test_recompress() {
+        use compressed_file_manager::TestApi;
         //---------------------------------- arrange ---------------------------------- 
         singleton_manager::startup();
         use std::collections::HashSet;
@@ -50,7 +52,7 @@ mod tests {
         //---------------------------------- act ----------------------------------
         //open
         println!("Open : {}",testPath);
-        let mut compressedFile=compressed_file_manager::Open(testPath);
+        let mut compressedFile=TestApi::Open(testPath);
         let fileList=compressedFile.GetFileList();
         println!("compressedFile.GetFileList => \r\n{}",to_summary(&fileList));
 
@@ -67,17 +69,17 @@ mod tests {
         //recompress
         compressedFile.Recompress(testPath);
 
-        compressed_file_manager::Close(compressedFile);
+        TestApi::Close(compressedFile);
 
         
         
         //---------------------------------- assert ---------------------------------- 
         //open recompress file
         println!("Open : {}",testPath);
-        let mut compressedFile=compressed_file_manager::Open(testPath);
+        let mut compressedFile=TestApi::Open(testPath);
         let fileList_recomp=compressedFile.GetFileList();
         println!("compressedFile.GetFileList => \r\n{}",to_summary(&fileList_recomp));
-        compressed_file_manager::Close(compressedFile);
+        TestApi::Close(compressedFile);
 
         //set verificationList
         let mut verificationList : Vec<String> = Vec::new();
@@ -108,6 +110,7 @@ mod tests {
 
     #[test]
     fn test_preview() {
+        use compressed_file_manager::TestApi;
         //---------------------------------- arrange ---------------------------------- 
         singleton_manager::startup();
         let srcPath="../TestData/TestData.zip";
@@ -115,7 +118,7 @@ mod tests {
 
         //---------------------------------- act ---------------------------------- 
         println!("Open : {}",srcPath);
-        let mut compressedFile=compressed_file_manager::Open(srcPath);
+        let mut compressedFile=TestApi::Open(srcPath);
         let fileList=compressedFile.GetFileList();
         println!("compressedFile.GetFileList => \r\n{}",to_summary(&fileList));
         let previewTarget = fileList[0].clone();
@@ -135,7 +138,7 @@ mod tests {
                 assert!(exist);
                 
                 //check temp remove
-                compressed_file_manager::Close(compressedFile);
+                TestApi::Close(compressedFile);
                 let exist = match std::fs::metadata(tmpPath.clone()){
                     Ok(metadata)=>{metadata.is_file()}
                     Err(_) => {false}
@@ -153,5 +156,50 @@ mod tests {
         singleton_manager::cleanup();
     }
 
-    
+    #[test]
+    fn test_Open_c() {
+        use compressed_file_manager::*;
+        use utility_c::Utility_C;
+        use utility_c::Type_C::*;
+        
+        //---------------------------------- arrange ---------------------------------- 
+        Startup();
+        let srcPath="../TestData/TestData.zip";
+        let testPath_CStr = Utility_C::str_to_CString(srcPath);
+        let testPath_CPtr = cstr_to_ptr!(testPath_CStr);
+        //let mut compressedFile=CompressedFileManager::Open("D:/Develop/CompressedFileManager/TestData/TestData.zip");
+
+        //---------------------------------- act ----------------------------------
+        //open
+        let mut handle:C_HANDLE=C_HANDLE_NULL;
+        let ptr=Utility_C::handle_to_ptr(&mut handle);
+        println!("HANDLE = {}",handle);
+
+        println!("1. Open => {}",srcPath);
+        let openResult=Open(ptr,testPath_CPtr);
+        println!("open result : {}",openResult);
+        println!("HANDLE : {}",handle);
+
+        let count = GetFileCount(ptr);
+        println!("2. Count : {}",count);
+
+        
+        let mut buff : Vec<C_CHAR> = Vec::new();
+        buff.resize(C_BUFFER_MAX as usize, 0);
+        let getFileResult = GetFile(ptr,0,buff.as_ptr(),C_BUFFER_MAX);
+        println!("3. GetFile Result : {}, FileList[0] : {}",getFileResult,Utility_C::vec_to_String(&buff));
+
+        Close(ptr);
+        println!("4. Close");
+        println!("HANDLE = {}",handle);
+
+        
+        
+        //---------------------------------- assert ---------------------------------- 
+        //open recompress file
+        
+
+        Cleanup();
+    }
+
 }

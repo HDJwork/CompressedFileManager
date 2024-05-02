@@ -3,7 +3,7 @@ use super::i_compress_manager::*;
 use std::iter::Iterator;
 use std::collections::HashMap;
 
-use crate::compress_manager::miniz_wrapper_dll_obj::{
+use crate::utility_c::Type_C::{
     C_HANDLE,
     C_CHAR,
     C_STR,
@@ -13,10 +13,10 @@ use crate::compress_manager::miniz_wrapper_dll_obj::{
     C_FALSE,
     C_BUFFER_MAX,
 };
-use crate::compress_manager::miniz_wrapper_dll_obj::Utility::{
+use crate::utility_c::Utility_C::{
     str_to_CString,
     handle_to_ptr,
-    to_string,
+    vec_to_String,
 };
 use crate::compress_manager::miniz_wrapper_dll_obj::MinizWrapperDllObj;
 
@@ -106,7 +106,7 @@ impl ICompressManager for CompressManagerImpl
             let result=unsafe {(self.dllobj.readResult_GetFileName)(ptr,i,buff.as_ptr() as C_STR,C_BUFFER_MAX)};
             if result != C_FALSE
             {
-                let fileName = to_string(&buff);
+                let fileName = vec_to_String(&buff);
                 retval.push(fileName);
             }
         }
@@ -159,7 +159,7 @@ impl ICompressManager for CompressManagerImpl
                     return Err(String::from("previewResult_GetFilePath fail!"))
 
                 }
-                (handle,to_string(&buff))
+                (handle,vec_to_String(&buff))
             };
             match previewed_file_builder::buildPreviewedFile(resultPair.1.as_str()){
                 Ok(previewedFile)=>{

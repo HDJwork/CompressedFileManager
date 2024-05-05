@@ -8,6 +8,7 @@ mod previewed_file;
 mod custom_type;
 mod singleton_manager;
 mod utility_c;
+mod api_dll;
 
 
 
@@ -158,7 +159,7 @@ mod tests {
 
     #[test]
     fn test_Open_c() {
-        use compressed_file_manager::*;
+        use api_dll::*;
         use utility_c::Utility_C;
         use utility_c::Type_C::*;
         

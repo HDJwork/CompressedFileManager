@@ -184,11 +184,21 @@ mod tests {
         let count = GetFileCount(ptr);
         println!("2. Count : {}",count);
 
-        
-        let mut buff : Vec<C_CHAR> = Vec::new();
-        buff.resize(C_BUFFER_MAX as usize, 0);
-        let getFileResult = GetFile(ptr,0,buff.as_ptr(),C_BUFFER_MAX);
-        println!("3. GetFile Result : {}, FileList[0] : {}",getFileResult,Utility_C::vec_to_String(&buff));
+        println!("3. GetFile Result =>");
+        for i in 0..count{
+
+            let mut buff : Vec<C_CHAR> = Vec::new();
+            buff.resize(C_BUFFER_MAX as usize, 0);
+            let getFileResult = GetFile(ptr,i,buff.as_ptr(),C_BUFFER_MAX);
+
+            // for j in 0..3{
+            //     for k in 0..8{
+            //         print!("{} ",buff[j*8+k]);
+            //     }
+            //     println!();
+            // }
+            println!("result : {}, FileList[{}] : {}",getFileResult,i,Utility_C::vec_to_String(&buff));
+        }
 
         Close(ptr);
         println!("4. Close");

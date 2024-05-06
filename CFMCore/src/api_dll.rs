@@ -11,14 +11,17 @@ use crate::utility_c::Utility_C;
 
 use super::compressed_file::CompressedFile;
 
+#[no_mangle]
 pub extern "C" fn Startup(){
     crate::singleton_manager::startup();
 }
 
+#[no_mangle]
 pub extern "C" fn Cleanup(){
     crate::singleton_manager::cleanup();
 }
 
+#[no_mangle]
 pub extern "C" fn Open(out_ptr_compressedFile: C_PTR, path_c: C_STR)->C_BOOL{
     
     let layout = Layout::new::<CompressedFile>();
@@ -38,6 +41,7 @@ pub extern "C" fn Open(out_ptr_compressedFile: C_PTR, path_c: C_STR)->C_BOOL{
     }
 }
 
+#[no_mangle]
 pub extern "C" fn Close(compressedFile: C_PTR)->C_BOOL{
     
     let layout = Layout::new::<CompressedFile>();
@@ -49,11 +53,13 @@ pub extern "C" fn Close(compressedFile: C_PTR)->C_BOOL{
     return C_TRUE;
 }
 
+#[no_mangle]
 pub extern "C" fn GetFileCount(ptr_compressedFile: C_PTR)->C_INT{
     let compressedFile = Utility_C::ptr_to_ref::<CompressedFile>(ptr_compressedFile);
     return compressedFile.GetFileList().len() as C_INT;
 }
 
+#[no_mangle]
 pub extern "C" fn GetFile(ptr_compressedFile: C_PTR, index:C_INT, out_buff:C_STR, buff_size:C_INT)->C_BOOL{
     let compressedFile = Utility_C::ptr_to_ref::<CompressedFile>(ptr_compressedFile);
 

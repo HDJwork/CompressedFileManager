@@ -3,6 +3,7 @@
 
 use super::*;
 
+#[derive(Clone)] 
 pub struct PreviewedFile_Image{
     tmpPath : String,
 }
@@ -15,4 +16,7 @@ impl IPreviewedFile for PreviewedFile_Image
 {
     fn GetType(&self) -> EType{return EType::Image;}
     fn GetTmpPath(&self) -> String{return self.tmpPath.clone();}
+    //fn GetSize(&self) -> usize{return std::mem::size_of::<PreviewedFile_Image>();}
+    //unsafe fn Overwrite(&self,rawTarget:*mut u8) {std::ptr::write(rawTarget as * mut Self,self.clone()); }
+
 }

@@ -3,6 +3,7 @@
 
 use super::i_previewed_file::*;
 
+#[derive(Clone)] 
 pub struct PreviewedFile_Unknown{
     tmpPath : String,
 }
@@ -15,4 +16,7 @@ impl IPreviewedFile for PreviewedFile_Unknown
 {
     fn GetType(&self) -> EType{return EType::Unknown;}
     fn GetTmpPath(&self) -> String{return self.tmpPath.clone();}
+    //fn GetSize(&self) -> usize{return std::mem::size_of::<DummyPreviewedFile>();}
+    //unsafe fn Overwrite(&self,rawTarget:*mut u8) {std::ptr::write(rawTarget as * mut Self,self.clone()); }
+
 }

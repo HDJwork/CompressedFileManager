@@ -1,6 +1,8 @@
 #![allow(non_snake_case)]
 
+#[cfg(debug_assertions)]
 use core::sync::atomic::AtomicUsize;
+#[cfg(debug_assertions)]
 use core::sync::atomic::Ordering;
 
 
@@ -11,11 +13,12 @@ use std::collections::HashSet;
 pub struct CompressedFile
 {
     path : String,
-    id : usize,
-
+    
     manager : Box<dyn ICompressManager>,
     fileList : Vec<String>,
     deleteFileList: HashSet<String>,
+    #[cfg(debug_assertions)]
+    id : usize,
 }
 
 impl CompressedFile{
@@ -24,10 +27,11 @@ impl CompressedFile{
         use super::compress_manager::compress_manager_impl::CompressManagerImpl;
         let mut retval = CompressedFile{
             path: String::from(path),
-            id: Self::getID(),
             manager: Box::new(CompressManagerImpl::new(path)),
             fileList : Vec::new(),
             deleteFileList : HashSet::new(),
+            #[cfg(debug_assertions)]
+            id: Self::getID(),
         };
         if retval.manager.Open(){
             retval.fileList = retval.manager.GetFileList();
@@ -38,10 +42,11 @@ impl CompressedFile{
         use super::compress_manager::compress_manager_impl::CompressManagerImpl;
         let mut retval = CompressedFile{
             path: String::from(path),
-            id: Self::getID(),
             manager: Box::new(CompressManagerImpl::new(path)),
             fileList : Vec::new(),
             deleteFileList : HashSet::new(),
+            #[cfg(debug_assertions)]
+            id: Self::getID(),
         };
         if retval.manager.Open(){
             retval.fileList = retval.manager.GetFileList();

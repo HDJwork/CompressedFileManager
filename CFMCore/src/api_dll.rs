@@ -152,26 +152,37 @@ pub extern "C" fn Preview_Release(ptr_previewedFile: C_PTR){
         dealloc(ptr, layout);
         *ptr_previewedFile=0;
     }
-    // let previewedFile = std::mem::ManuallyDrop::new()
-    // let compressedFile = Utility_C::ptr_to_ref::<CompressedFile>(ptr_compressedFile);
-
-    // let file=Utility_C::ptr_to_String(file_c);
-    
-    // match compressedFile.PreviewFile(file.as_str()){
-    //     Ok(previewedFile)=>{
-    //         let layout = Layout::from_size_align(previewedFile.GetSize(),1).unwrap();
-
-    //         // 메모리 할당
-    //         unsafe {
-    //              let ptr=  alloc(layout) ;
-    //              previewedFile.Overwrite(ptr);
-    //              *out_ptr_previewedFile = ptr as u64;
-    //         };
-    //         return C_TRUE;
-    //     },
-    //     Err(_)=>{return C_FALSE;}
-    // }
 }
 
+#[no_mangle]
+pub extern "C" fn Preview_GetType(ptr_previewedFile: C_PTR)->C_INT{
+    let previewResult = Utility_C::ptr_to_ref::<PreviewResult>(ptr_previewedFile);
+    let compressedFile = Utility_C::ptr_to_ref::<CompressedFile>(previewResult.ptr_compressedFile);
 
+    use crate::custom_type::EType;
+    
+    match compressedFile.PreviewFile(previewResult.file.as_str()){
+        Ok(previewedFile)=>{
+            return previewedFile.GetType() as C_INT;
+        },
+        Err(_)=>{return EType::ERROR as C_INT;}
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Preview_GetTmpPath(ptr_previewedFile: C_PTR, out_buff:C_STR, buff_size:C_INT)->C_BOOL{
+    let previewResult = Utility_C::ptr_to_ref::<PreviewResult>(ptr_previewedFile);
+    let compressedFile = Utility_C::ptr_to_ref::<CompressedFile>(previewResult.ptr_compressedFile);
+    
+    match compressedFile.PreviewFile(previewResult.file.as_str()){
+        Ok(previewedFile)=>{
+            match Utility_C::string_Write_to_CBuffer(previewedFile.GetTmpPath(),out_buff,buff_size){
+                true=>{return C_TRUE;},
+                false=>{return C_FALSE;}
+            }
+        },
+        Err(_)=>{return C_FALSE;}
+    }
+    
+}
 

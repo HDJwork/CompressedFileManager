@@ -158,7 +158,7 @@ mod tests {
     }
 
     #[test]
-    fn test_Open_c() {
+    fn test_API_Open() {
         use api_dll::*;
         use utility_c::Utility_C;
         use utility_c::Type_C::*;
@@ -205,6 +205,67 @@ mod tests {
         println!("HANDLE = {}",handle);
 
         
+        
+        //---------------------------------- assert ---------------------------------- 
+        //open recompress file
+        
+
+        Cleanup();
+    }
+    
+    #[test]
+    fn test_API_Preview() {
+        use api_dll::*;
+        use utility_c::Utility_C;
+        use utility_c::Type_C::*;
+        
+        //---------------------------------- arrange ---------------------------------- 
+        Startup();
+        let srcPath="../TestData/TestData.zip";
+        let testPath_CStr = Utility_C::str_to_CString(srcPath);
+        let testPath_CPtr = cstr_to_ptr!(testPath_CStr);
+        //let mut compressedFile=CompressedFileManager::Open("D:/Develop/CompressedFileManager/TestData/TestData.zip");
+
+        //---------------------------------- act ----------------------------------
+        //open
+        let mut handle:C_HANDLE=C_HANDLE_NULL;
+        let ptr=Utility_C::handle_to_ptr(&mut handle);
+        println!("HANDLE = {}",handle);
+
+        println!("1. Open => {}",srcPath);
+        let openResult=Open(ptr,testPath_CPtr);
+        println!("open result : {}",openResult);
+        println!("HANDLE : {}",handle);
+
+        let mut handle_preview:C_HANDLE=C_HANDLE_NULL;
+        let ptr_preview=Utility_C::handle_to_ptr(&mut handle_preview);
+        println!("Preview HANDLE : {}",handle_preview);
+
+        println!("2. Preview");
+        let mut buff : Vec<C_CHAR> = Vec::new();
+        buff.resize(C_BUFFER_MAX as usize, 0);
+        let getFileResult = GetFile(ptr,0,buff.as_ptr(),C_BUFFER_MAX);
+        if(getFileResult==C_TRUE) {
+            if PreviewFile(ptr, ptr_preview, buff.as_ptr())==C_TRUE{
+                println!("Preview HANDLE : {}",handle_preview);
+                let result=Preview_GetType(ptr_preview);
+                println!("3. Preview_GetType => {}",result);
+                
+                let mut buff : Vec<C_CHAR> = Vec::new();
+                buff.resize(C_BUFFER_MAX as usize, 0);
+                let result=Preview_GetTmpPath(ptr_preview,buff.as_ptr(),C_BUFFER_MAX);
+                println!("4. Preview_GetTmpPath => result : {}",result);
+                println!("path : {}",Utility_C::vec_to_String(&buff));
+                
+            }
+            Preview_Release(ptr_preview);
+            println!("5. Preview_Release");
+            println!("Preview HANDLE : {}",handle_preview);
+        }
+
+        Close(ptr);
+        println!("6. Close");
+        println!("HANDLE = {}",handle);
         
         //---------------------------------- assert ---------------------------------- 
         //open recompress file

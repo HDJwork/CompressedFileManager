@@ -2,6 +2,7 @@
 
 
 pub enum EType{
+    ERROR=0,
     Image,
     Unknown,
 }

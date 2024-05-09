@@ -7,6 +7,8 @@ using System.Runtime.InteropServices;
 using System.Reflection;
 using Debug=System.Diagnostics.Debug;
 
+
+
 namespace CompressedFileManager
 {
     using C_BOOL=int;
@@ -31,6 +33,7 @@ namespace CompressedFileManager
         public static extern bool FreeLibrary(IntPtr hModule);
         #endregion
 
+        //---------------------------------------- Singleton ---------------------------------------- 
         #region Singleton
         static Test_DLL? _instance=null;
         public static Test_DLL Instance
@@ -56,14 +59,24 @@ namespace CompressedFileManager
             Cleanup();
         }
 
-        private IntPtr hDll = IntPtr.Zero;
+
+        //---------------------------------------- DLL definition ---------------------------------------- 
+        #region DLL Definition
 
         public delegate void DLL_Startup();
         public delegate void DLL_Cleanup();
-        public delegate C_BOOL DLL_Open(IntPtr ptr, string path);
-        public delegate void DLL_Close(IntPtr ptr);
-        public delegate int DLL_GetFileCount(IntPtr ptr);
-        public delegate C_BOOL DLL_GetFile(IntPtr ptr, int index, [MarshalAs(UnmanagedType.LPUTF8Str)] StringBuilder output, int bufferSize);
+        public delegate C_BOOL DLL_Open(IntPtr out_pCompressedFile, [MarshalAs(UnmanagedType.LPUTF8Str)] string path);
+        public delegate void DLL_Close(IntPtr pCompressedFile);
+        public delegate int DLL_GetFileCount(IntPtr pCompressedFile);
+        public delegate C_BOOL DLL_GetFile(IntPtr pCompressedFile, int index, [MarshalAs(UnmanagedType.LPUTF8Str)] StringBuilder output, int bufferSize);
+        public delegate C_BOOL DLL_DeleteFile(IntPtr pCompressedFile, [MarshalAs(UnmanagedType.LPUTF8Str)] string file);
+        public delegate C_BOOL DLL_RevertDeleteFile(IntPtr pCompressedFile, [MarshalAs(UnmanagedType.LPUTF8Str)] string file);
+        public delegate C_BOOL DLL_IsChanged(IntPtr pCompressedFile);
+        public delegate C_BOOL DLL_Recompress(IntPtr pCompressedFile, [MarshalAs(UnmanagedType.LPUTF8Str)] string targetPath);
+        public delegate C_BOOL DLL_PreviewFile(IntPtr pCompressedFile, IntPtr out_pPreview, [MarshalAs(UnmanagedType.LPUTF8Str)] string targetPath);
+        public delegate void DLL_Preview_Release(IntPtr pPreview);
+        public delegate int DLL_Preview_GetType(IntPtr pPreview);
+        public delegate int DLL_Preview_GetTmpPath(IntPtr pPreview, [MarshalAs(UnmanagedType.LPUTF8Str)] StringBuilder output, int bufferSize);
 
 #pragma warning disable 0169
         public DLL_Startup fn_Startup;
@@ -72,8 +85,46 @@ namespace CompressedFileManager
         public DLL_Close fn_Close;
         public DLL_GetFileCount fn_GetFileCount;
         public DLL_GetFile fn_GetFile;
-#pragma warning restore 0169
+        public DLL_DeleteFile fn_DeleteFile;
+        public DLL_RevertDeleteFile fn_RevertDeleteFile;
+        public DLL_IsChanged fn_IsChanged;
+        public DLL_Recompress fn_Recompress;
+        public DLL_PreviewFile fn_PreviewFile;
+        public DLL_Preview_Release fn_Preview_Release;
+        public DLL_Preview_GetType fn_Preview_GetType;
+        public DLL_Preview_GetTmpPath fn_Preview_GetTmpPath;
 
+#pragma warning restore 0169
+        private bool loadFunction()
+        {
+            try
+            {
+                getFunc(out fn_Startup, "Startup");
+                getFunc(out fn_Cleanup, "Cleanup");
+                getFunc(out fn_Open, "Open");
+                getFunc(out fn_Close, "Close");
+                getFunc(out fn_GetFileCount, "GetFileCount");
+                getFunc(out fn_GetFile, "GetFile");
+                getFunc(out fn_DeleteFile              ,"DeleteFile");
+                getFunc(out fn_RevertDeleteFile        ,"RevertDeleteFile");
+                getFunc(out fn_IsChanged               ,"IsChanged");
+                getFunc(out fn_Recompress              ,"Recompress");
+                getFunc(out fn_PreviewFile             ,"PreviewFile");
+                getFunc(out fn_Preview_Release         ,"Preview_Release");
+                getFunc(out fn_Preview_GetType         ,"Preview_GetType");
+                getFunc(out fn_Preview_GetTmpPath     , "Preview_GetTmpPath");
+    }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+                return false;
+            }
+            return true;
+        }
+        #endregion
+
+
+        private IntPtr hDll = IntPtr.Zero;
 
         private void getFunc<T>(out T result,string functionName) where T : Delegate
         {
@@ -115,20 +166,8 @@ namespace CompressedFileManager
                 return false;
             }
 
-            try
-            {
-                getFunc(out fn_Startup, "Startup");
-                getFunc(out fn_Cleanup, "Cleanup");
-                getFunc(out fn_Open, "Open");
-                getFunc(out fn_Close, "Close");
-                getFunc(out fn_GetFileCount, "GetFileCount");
-                getFunc(out fn_GetFile, "GetFile");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(ex.Message);
+            if (!loadFunction())
                 return false;
-            }
 
             return true;
             // DLL 해제

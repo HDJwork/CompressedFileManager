@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Reflection;
 using Debug=System.Diagnostics.Debug;
+using System.Collections;
 
 
 
@@ -186,34 +187,22 @@ namespace CompressedFileManager
             IntPtr handle= IntPtr.Zero;
             IntPtr ptr;
             unsafe{ ptr = (IntPtr) (&handle); }
-            if(fn_Open(ptr, "../TestData/TestData.zip") ==C_TRUE)
+            string targetPath = "../TestData/TestData.zip";
+            string resultPath = "../TestData/TestData5.zip";
+            if (fn_Open(ptr, targetPath) ==C_TRUE)
             {
                 var count = fn_GetFileCount(ptr);
                 Debug.WriteLine(String.Format("count : {0}",count));
+                List<string> fileList= new ();
                 for (int i = 0; i < count; i++)
                 {
                     StringBuilder stringBuilder = new StringBuilder(200);
                     
-
-
                     if (fn_GetFile(ptr, i, stringBuilder, 200)==C_TRUE)
                     {
-                        //StringBuilder tmp=new StringBuilder();
-                        //for(int j=0;j<3;++j)
-                        //{
-                        //    for(int k=0;k<8;++k)
-                        //    {
-                        //        int index = j * 8 + k;
-                        //        if (index >= stringBuilder.Length)
-                        //            break;
-                        //        tmp.Append(((byte)stringBuilder[index]).ToString() + " ");
-                        //    }
-                        //    tmp.AppendLine();
-                        //}
-                        //Debug.WriteLine(tmp);
-
                         var str = stringBuilder.ToString();
                         Debug.WriteLine(String.Format("GetFile[{0}] result : {1}", i,str));
+                        fileList.Add(str);
                     }
                     else
                     {
@@ -221,7 +210,18 @@ namespace CompressedFileManager
                         break;
                     }
                 }
+                if(fn_DeleteFile(ptr, fileList[0])==C_FALSE)
+                {
+                    Debug.WriteLine(String.Format("fn_DeleteFile fail"));
+                }
+                if (fn_Recompress(ptr, resultPath)==C_FALSE)
+                {
+                    Debug.WriteLine(String.Format("fn_Recompress fail"));
+                }
             }
+
+
+
             fn_Close(ptr);
 
             fn_Cleanup();

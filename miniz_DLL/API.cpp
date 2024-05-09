@@ -525,9 +525,10 @@ BOOL MINIZ_LIB_Zip(const char* _targetDir, const char* _resultPath, const char**
 		if (std::binary_search(passingList.begin(), passingList.end(), relativePath))
 			continue;
 
+		//T.B.D 240509 multibyte_to_utf8(relativePath).c_str() need to check!!
 		if (!mz_zip_writer_add_file(
 			&zip_archive, 
-			relativePath.c_str(),
+			multibyte_to_utf8(relativePath).c_str(),
 			multibyte_to_utf8(subFile).c_str(),
 			NULL, 0, MZ_BEST_COMPRESSION))
 		{

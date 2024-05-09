@@ -98,13 +98,13 @@ mod tests {
 
         //cleanup
         //remove test file
-        let exist = match std::fs::metadata(testPath){
-            Ok(metadata)=>{metadata.is_file()}
-            Err(_) => {false}
-        };
-        if exist {
-            std::fs::remove_file(testPath).expect("std::fs::remove_file Fail!");
-        }
+        //let exist = match std::fs::metadata(testPath){
+        //    Ok(metadata)=>{metadata.is_file()}
+        //    Err(_) => {false}
+        //};
+        //if exist {
+        //    std::fs::remove_file(testPath).expect("std::fs::remove_file Fail!");
+        //}
 
         singleton_manager::cleanup();
     }
@@ -168,8 +168,6 @@ mod tests {
         let srcPath="../TestData/TestData.zip";
         let testPath_CStr = Utility_C::str_to_CString(srcPath);
         let testPath_CPtr = cstr_to_ptr!(testPath_CStr);
-        //let mut compressedFile=CompressedFileManager::Open("D:/Develop/CompressedFileManager/TestData/TestData.zip");
-
         //---------------------------------- act ----------------------------------
         //open
         let mut handle:C_HANDLE=C_HANDLE_NULL;
@@ -190,13 +188,6 @@ mod tests {
             let mut buff : Vec<C_CHAR> = Vec::new();
             buff.resize(C_BUFFER_MAX as usize, 0);
             let getFileResult = GetFile(ptr,i,buff.as_ptr(),C_BUFFER_MAX);
-
-            // for j in 0..3{
-            //     for k in 0..8{
-            //         print!("{} ",buff[j*8+k]);
-            //     }
-            //     println!();
-            // }
             println!("result : {}, FileList[{}] : {}",getFileResult,i,Utility_C::vec_to_String(&buff));
         }
 
@@ -245,7 +236,7 @@ mod tests {
         let mut buff : Vec<C_CHAR> = Vec::new();
         buff.resize(C_BUFFER_MAX as usize, 0);
         let getFileResult = GetFile(ptr,0,buff.as_ptr(),C_BUFFER_MAX);
-        if(getFileResult==C_TRUE) {
+        if getFileResult==C_TRUE {
             if PreviewFile(ptr, ptr_preview, buff.as_ptr())==C_TRUE{
                 println!("Preview HANDLE : {}",handle_preview);
                 let result=Preview_GetType(ptr_preview);
@@ -262,6 +253,68 @@ mod tests {
             println!("5. Preview_Release");
             println!("Preview HANDLE : {}",handle_preview);
         }
+
+        Close(ptr);
+        println!("6. Close");
+        println!("HANDLE = {}",handle);
+        
+        //---------------------------------- assert ---------------------------------- 
+        //open recompress file
+        
+
+        Cleanup();
+    }
+
+    #[test]
+    fn test_API_Recompress() {
+        use api_dll::*;
+        use utility_c::Utility_C;
+        use utility_c::Type_C::*;
+        
+        //---------------------------------- arrange ---------------------------------- 
+        Startup();
+        let srcPath="../TestData/TestData.zip";
+        let testPath_CStr = Utility_C::str_to_CString(srcPath);
+        let testPath_CPtr = cstr_to_ptr!(testPath_CStr);
+        //let mut compressedFile=CompressedFileManager::Open("D:/Develop/CompressedFileManager/TestData/TestData.zip");
+
+        //---------------------------------- act ----------------------------------
+        //open
+        let mut handle:C_HANDLE=C_HANDLE_NULL;
+        let ptr=Utility_C::handle_to_ptr(&mut handle);
+        println!("HANDLE = {}",handle);
+
+        println!("1. Open => {}",srcPath);
+        let openResult=Open(ptr,testPath_CPtr);
+        println!("open result : {}",openResult);
+        println!("HANDLE : {}",handle);
+
+        let count = GetFileCount(ptr);
+        println!("2. Count : {}",count);
+
+        println!("3. GetFile Result =>");
+        let mut fileList:Vec<String> = Vec::new();
+        for i in 0..count{
+
+            let mut buff : Vec<C_CHAR> = Vec::new();
+            buff.resize(C_BUFFER_MAX as usize, 0);
+            let getFileResult = GetFile(ptr,i,buff.as_ptr(),C_BUFFER_MAX);
+            let fileName = Utility_C::vec_to_String(&buff);
+            println!("result : {}, FileList[{}] : {}",getFileResult,i,&fileName);
+            fileList.push(fileName);
+        }
+
+        let deleteFile_CStr = Utility_C::str_to_CString(fileList[0].as_str());
+        let deleteFile_CPtr = cstr_to_ptr!(deleteFile_CStr);
+        let result = DeleteFile(ptr, deleteFile_CPtr);
+        println!("4. DeleteFile Result => {}",result);
+
+        let dstPath="../TestData/TestData5.zip";
+        let testPath_CStr = Utility_C::str_to_CString(dstPath);
+        let testPath_CPtr = cstr_to_ptr!(testPath_CStr);
+        let result = Recompress(ptr, testPath_CPtr);
+        println!("5. Recompress Result => {}",result);
+
 
         Close(ptr);
         println!("6. Close");

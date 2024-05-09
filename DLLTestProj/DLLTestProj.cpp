@@ -79,7 +79,7 @@ int main()
     MINIZ_LIB_Read_Result_Release(ptr);
     std::cout << "ptr : " << ptr << std::endl;
 
-    auto _zipPath3 = multibyte_to_utf8("D:/Develop/CompressedFileManager/TestData/ㄷㄹ/TestData4.zip");
+    auto _zipPath3 = multibyte_to_utf8("D:/Develop/CompressedFileManager/TestData/ㄷㄹ/TestData1.zip");
     auto zipPath3 = _zipPath3.c_str();
     /*std::vector<const char*>*/ v = { _v[0].c_str() };
     if (!MINIZ_LIB_Recompress_UTF8(filePath, zipPath3, v.data(), static_cast<int>(v.size())))

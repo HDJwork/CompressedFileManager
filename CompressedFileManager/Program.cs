@@ -8,15 +8,8 @@ namespace CompressedFileManager
         [STAThread]
         static void Main()
         {
-            var dll = Test_DLL.Instance;
-            if(dll.Startup() == false)
-            {
-                dll.Cleanup();
-                Application.Exit();
-                return;
-            }
-            dll.Test();
-            dll.Cleanup();
+            //CFMDllWrapper.Test();
+            Test_DLL.Test();
 
 
             // To customize application configuration such as set high DPI settings or default font,

@@ -327,4 +327,13 @@ mod tests {
         Cleanup();
     }
 
+    #[test]
+    fn test_API_Startup_Cleanup() {
+        use api_dll::*;
+        Startup();
+        Cleanup();
+        Startup();
+        Cleanup();
+        
+    }
 }

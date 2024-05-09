@@ -4,7 +4,7 @@
 
 //CompressedFileManager.rs
 //use std::ffi::*;
-use std::alloc::{alloc, dealloc, Layout};
+use std::alloc::{alloc, Layout};
 
 //use crate::previewed_file::IPreviewedFile;
 use crate::utility_c::Type_C::*;
@@ -48,13 +48,13 @@ pub extern "C" fn Open(out_ptr_compressedFile: C_PTR, path_c: C_STR)->C_BOOL{
 }
 
 #[no_mangle]
-pub extern "C" fn Close(compressedFile: C_PTR)->C_BOOL{
-    
-    let layout = Layout::new::<CompressedFile>();
+pub extern "C" fn Close(ptr_compressedFile: C_PTR)->C_BOOL{
     unsafe{
-        let ptr:*mut u8 = *compressedFile as *mut u8;   
-        dealloc(ptr, layout);
-        *compressedFile=0;
+        //for delete
+        let ptr = Utility_C::ptr_to_ptr::<CompressedFile>(ptr_compressedFile);
+        let _ = Box::from_raw(ptr);
+
+        *ptr_compressedFile=0;
     }
     return C_TRUE;
 }
@@ -146,10 +146,11 @@ pub extern "C" fn PreviewFile(ptr_compressedFile: C_PTR,out_ptr_previewedFile: C
 
 #[no_mangle]
 pub extern "C" fn Preview_Release(ptr_previewedFile: C_PTR){
-    let layout = Layout::new::<PreviewResult>();
     unsafe{
-        let ptr:*mut u8 = *ptr_previewedFile as *mut u8;   
-        dealloc(ptr, layout);
+        //for delete
+        let ptr = Utility_C::ptr_to_ptr::<PreviewResult>(ptr_previewedFile);
+        let _ = Box::from_raw(ptr);
+
         *ptr_previewedFile=0;
     }
 }

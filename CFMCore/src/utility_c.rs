@@ -40,6 +40,15 @@ pub mod Utility_C{
             targetPtr.as_mut().unwrap()
         };
     }
+    pub fn ptr_to_ptr<T>(ptr: C_PTR) -> *mut T
+    {
+        return unsafe{
+            let _ptrValue = *ptr as u64;
+            let raw_ptr:*mut u8=_ptrValue as *mut u8;
+            let targetPtr = raw_ptr as *mut T;
+            targetPtr
+        };
+    }
 
     #[allow(unused_macros)]
     #[macro_export]

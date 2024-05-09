@@ -189,6 +189,7 @@ namespace CompressedFileManager
             unsafe{ ptr = (IntPtr) (&handle); }
             string targetPath = "../TestData/TestData.zip";
             string resultPath = "../TestData/TestData5.zip";
+            string? previewPath = null;
             if (fn_Open(ptr, targetPath) ==C_TRUE)
             {
                 var count = fn_GetFileCount(ptr);
@@ -210,7 +211,39 @@ namespace CompressedFileManager
                         break;
                     }
                 }
-                if(fn_DeleteFile(ptr, fileList[0])==C_FALSE)
+                IntPtr handle_Preview = IntPtr.Zero;
+                IntPtr pPreview;
+                unsafe { pPreview = (IntPtr)(&handle_Preview); }
+                if(fn_PreviewFile(ptr,pPreview, fileList[0])==C_TRUE)
+                {
+                    var type = fn_Preview_GetType(pPreview);
+                    Debug.WriteLine(String.Format("fn_Preview_GetTmpPath result = {0}", type));
+
+                    StringBuilder tmpPath = new StringBuilder(200);
+
+                    if(fn_Preview_GetTmpPath(pPreview, tmpPath,200)==C_TRUE)
+                    {
+                        previewPath = tmpPath.ToString();
+                        Debug.WriteLine(String.Format("fn_Preview_GetTmpPath result = {0}", previewPath));
+                    }
+                    else
+                    {
+                        Debug.WriteLine(String.Format("fn_Preview_GetTmpPath fail"));
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine(String.Format("fn_PreviewFile fail"));
+                }
+                if(previewPath!=null)
+                    Debug.WriteLine(String.Format("preview file exist = {0}", Path.Exists(previewPath)));
+                Debug.WriteLine(String.Format("Release Preview file"));
+                fn_Preview_Release(pPreview);
+                if (previewPath!=null)
+                    Debug.WriteLine(String.Format("preview file exist = {0}", Path.Exists(previewPath)));
+
+
+                if (fn_DeleteFile(ptr, fileList[0])==C_FALSE)
                 {
                     Debug.WriteLine(String.Format("fn_DeleteFile fail"));
                 }
@@ -223,6 +256,9 @@ namespace CompressedFileManager
 
 
             fn_Close(ptr);
+
+            if (previewPath != null)
+                Debug.WriteLine(String.Format("preview file exist = {0}", Path.Exists(previewPath)));
 
             fn_Cleanup();
 

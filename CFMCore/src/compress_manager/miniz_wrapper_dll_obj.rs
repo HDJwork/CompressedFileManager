@@ -94,7 +94,7 @@ impl MinizWrapperDllObj{
         use winapi::um::libloaderapi::LoadLibraryW;   
         
         // DLL 파일 경로
-        let dll_path = "../ref/miniz_DLL.dll";
+        let dll_path = "ref/miniz_DLL.dll";
         
         // DLL 파일 경로를 Wide 문자열로 변환
         let dll_path_wide: Vec<u16> = OsStr::new(dll_path)

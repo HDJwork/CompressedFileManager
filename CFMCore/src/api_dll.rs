@@ -5,7 +5,7 @@
 //CompressedFileManager.rs
 //use std::ffi::*;
 use std::alloc::{alloc, Layout};
-type Logger=crate::logger::Logger;
+type Logger=crate::logger::logger::Logger;
 
 //use crate::previewed_file::IPreviewedFile;
 use crate::utility_c::Type_C::*;

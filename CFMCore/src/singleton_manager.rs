@@ -1,5 +1,6 @@
 
 use super::compress_manager::MinizWrapperDllObj;
+use super::logger::logger::Logger;
 
 static mut STARTUP_COUNT:i32=0;
 
@@ -18,4 +19,5 @@ pub fn cleanup()
     if unsafe{STARTUP_COUNT==0}{
         MinizWrapperDllObj::destroy();
     }
+    Logger::destroy();
 }

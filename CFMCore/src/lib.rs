@@ -9,11 +9,13 @@ mod custom_type;
 mod singleton_manager;
 mod utility_c;
 mod api_dll;
+mod logger;
 
 
 
 #[cfg(test)]
 mod tests {
+
 
 
     use super::*;
@@ -333,6 +335,96 @@ mod tests {
         Startup();
         Cleanup();
         Startup();
+        Cleanup();
+        
+    }
+    #[test]
+    fn test_API_Open_Close() {
+        use api_dll::*;
+        use utility_c::Utility_C;
+        use utility_c::Type_C::*;
+        use rand::prelude::*;
+        use std::collections::HashSet;
+        Startup();
+        
+        let srcPath1="../TestData/TestData.zip";
+        let srcPath_CStr1 = Utility_C::str_to_CString(srcPath1);
+        let srcPath_CPtr1 = cstr_to_ptr!(srcPath_CStr1);
+        let srcPath2="../TestData/TestData1.zip";
+        let srcPath_CStr2 = Utility_C::str_to_CString(srcPath2);
+        let srcPath_CPtr2 = cstr_to_ptr!(srcPath_CStr2);
+
+
+        let mut rng = rand::thread_rng();
+        let mut set:HashSet<C_HANDLE> = HashSet::new();
+        // 0부터 99까지의 임의의 정수를 생성합니다.
+        for i in 0..1000 {
+            println!();
+            println!("try {}",i);
+
+            let n:u32 = rng.gen_range(0..3);
+            match n{
+                0=>{
+                    let mut handle:C_HANDLE=C_HANDLE_NULL;
+                    let ptr=Utility_C::handle_to_ptr(&mut handle);
+                    println!("HANDLE = {}",handle);
+
+                    println!("1. Open => {}",srcPath1);
+                    let openResult=Open(ptr,srcPath_CPtr1);
+                    println!("open result : {}",openResult);
+                    println!("HANDLE : {}",handle);
+                    set.insert(handle);
+                    
+                },
+                1=>{
+                    let mut handle:C_HANDLE=C_HANDLE_NULL;
+                    let ptr=Utility_C::handle_to_ptr(&mut handle);
+                    println!("HANDLE = {}",handle);
+
+                    println!("2. Open => {}",srcPath2);
+                    let openResult=Open(ptr,srcPath_CPtr2);
+                    println!("open result : {}",openResult);
+                    println!("HANDLE : {}",handle);
+                    set.insert(handle);
+                }
+                2=>{
+                    if set.is_empty(){
+                        continue;
+                    }
+                    let n:u32 = rng.gen_range(0..set.len() as u32);
+                    let mut iter = set.iter();
+                    let mut handleRef:Option<&C_HANDLE> =None;
+                    for _ in 0..n{
+                        handleRef=iter.next();
+                    }
+                    
+                    if let Some(_handle) = handleRef {
+                        let mut handle:C_HANDLE=*_handle;
+                        set.remove(&handle);
+                        let ptr=Utility_C::handle_to_ptr(&mut handle);
+                        println!("HANDLE = {}",handle);
+                        Close(ptr);
+                        println!("Close");
+                        println!("HANDLE = {}",handle);
+                    }
+                }
+                _=>{}
+            }
+            
+        }
+
+        
+        for mut handle in set{
+            println!();
+            let ptr=Utility_C::handle_to_ptr(&mut handle);
+            println!("HANDLE = {}",handle);
+            Close(ptr);
+            println!("Close");
+            println!("HANDLE = {}",handle);
+        }
+        
+
+
         Cleanup();
         
     }

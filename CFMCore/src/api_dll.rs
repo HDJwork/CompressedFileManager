@@ -5,6 +5,7 @@
 //CompressedFileManager.rs
 //use std::ffi::*;
 use std::alloc::{alloc, Layout};
+type Logger=crate::logger::Logger;
 
 //use crate::previewed_file::IPreviewedFile;
 use crate::utility_c::Type_C::*;
@@ -36,7 +37,12 @@ pub extern "C" fn Open(out_ptr_compressedFile: C_PTR, path_c: C_STR)->C_BOOL{
     let layout = Layout::new::<CompressedFile>();
     let compressedFile:&mut CompressedFile =unsafe {
         let ptr=  alloc(layout) ;
+        if ptr.is_null(){
+            return C_FALSE;
+        }
+        println!("open handle : {}" ,ptr as u64);
         *out_ptr_compressedFile = ptr as u64;
+        Logger::instance().write(format!("[CompressedFile] open : {:#x}\n" ,*out_ptr_compressedFile as u64));
         let targetPtr =ptr as *mut CompressedFile;
         std::ptr::write(targetPtr, CompressedFile::new_without_open(path.as_str()));
         targetPtr.as_mut().unwrap()
@@ -50,9 +56,13 @@ pub extern "C" fn Open(out_ptr_compressedFile: C_PTR, path_c: C_STR)->C_BOOL{
 #[no_mangle]
 pub extern "C" fn Close(ptr_compressedFile: C_PTR)->C_BOOL{
     unsafe{
+        Logger::instance().write(format!("[CompressedFile] close : {:#x}\n" ,*ptr_compressedFile as u64));
+        println!("close handle : {}" ,*ptr_compressedFile as u64);
         //for delete
         let ptr = Utility_C::ptr_to_ptr::<CompressedFile>(ptr_compressedFile);
-        let _ = Box::from_raw(ptr);
+        if !ptr.is_null() {
+            let _:Box<CompressedFile> = Box::from_raw(ptr);
+        }
 
         *ptr_compressedFile=0;
     }
@@ -134,6 +144,7 @@ pub extern "C" fn PreviewFile(ptr_compressedFile: C_PTR,out_ptr_previewedFile: C
     unsafe{
         let ptr= alloc(layout) ;
         *out_ptr_previewedFile = ptr as u64;
+        Logger::instance().write(format!("[Preview] open : {:#x}\n" ,*out_ptr_previewedFile as u64));
         let targetPtr = ptr as *mut PreviewResult;
         std::ptr::write(targetPtr,PreviewResult{ptr_compressedFile:ptr_compressedFile, file:file.clone()});
     }
@@ -148,8 +159,12 @@ pub extern "C" fn PreviewFile(ptr_compressedFile: C_PTR,out_ptr_previewedFile: C
 pub extern "C" fn Preview_Release(ptr_previewedFile: C_PTR){
     unsafe{
         //for delete
+        Logger::instance().write(format!("[Preview] close : {:#x}\n" ,*ptr_previewedFile as u64));
+
         let ptr = Utility_C::ptr_to_ptr::<PreviewResult>(ptr_previewedFile);
-        let _ = Box::from_raw(ptr);
+        if !ptr.is_null() {
+            let _ = Box::from_raw(ptr);
+        }
 
         *ptr_previewedFile=0;
     }

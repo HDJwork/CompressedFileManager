@@ -19,12 +19,12 @@ pub mod TestApi{
         
         return retval;
     }
-    pub fn Close(compressedFile :Box<CompressedFile>)
+    pub fn Close(_compressedFile :Box<CompressedFile>)
     {
         //do nothing
         #[cfg(debug_assertions)]
         {
-            let text=format!("CompressedFileManager::Close => {}",compressedFile.Summarize());
+            let text=format!("CompressedFileManager::Close => {}",_compressedFile.Summarize());
             dbg!(text);
         }
         

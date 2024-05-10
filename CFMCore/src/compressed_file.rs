@@ -40,7 +40,7 @@ impl CompressedFile{
     }
     pub fn new_without_open(path:&str)-> CompressedFile    {
         use super::compress_manager::compress_manager_impl::CompressManagerImpl;
-        let mut retval = CompressedFile{
+        let retval = CompressedFile{
             path: String::from(path),
             manager: Box::new(CompressManagerImpl::new(path)),
             fileList : Vec::new(),
@@ -48,9 +48,9 @@ impl CompressedFile{
             #[cfg(debug_assertions)]
             id: Self::getID(),
         };
-        if retval.manager.Open(){
-            retval.fileList = retval.manager.GetFileList();
-        }
+        // if retval.manager.Open(){
+        //     retval.fileList = retval.manager.GetFileList();
+        // }
         return retval;
     }
     pub fn Open(&mut self)->bool    {
@@ -98,6 +98,12 @@ impl CompressedFile{
         return self.manager.PreviewFile(file);
     }
 
+    pub fn ReleaseObject(&mut self){
+        //dbg!("CompressedFile.ReleaseObject!");
+        self.manager.Close();
+
+    }
+
     #[cfg(debug_assertions)]
     pub fn Summarize(&self) -> String    {
         return String::from(self.id.to_string()+"("+ &self.path +")");
@@ -113,6 +119,6 @@ impl CompressedFile{
 impl Drop for CompressedFile{
     fn drop(&mut self)    {
         dbg!("CompressedFile.drop!");
-        self.manager.Close();
+        self.ReleaseObject();
     }
 }

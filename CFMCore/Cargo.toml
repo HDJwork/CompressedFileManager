@@ -13,3 +13,4 @@ crate-type = ["cdylib"]
 winapi = { version = "0.3", features = ["winuser", "libloaderapi"] }
 libc = "0.2"
 lazy_static = "1.4"
+rand = "0.8.3"

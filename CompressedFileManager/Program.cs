@@ -8,8 +8,9 @@ namespace CompressedFileManager
         [STAThread]
         static void Main()
         {
+            CFM_CompressedFile.Startup();
             //CFMDllWrapper.Test();
-            Test_DLL.Test();
+            //Test_DLL.Test();
 
 
             // To customize application configuration such as set high DPI settings or default font,
@@ -17,6 +18,7 @@ namespace CompressedFileManager
             ApplicationConfiguration.Initialize();
             Application.Run(new MainForm());
             //
+            CFM_CompressedFile.Cleanup();
 
         }
     }

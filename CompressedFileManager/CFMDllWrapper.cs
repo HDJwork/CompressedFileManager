@@ -6,6 +6,8 @@ using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Runtime.ExceptionServices;
+using System.Security;
 
 namespace CompressedFileManager
 {
@@ -136,6 +138,7 @@ namespace CompressedFileManager
 
         private IntPtr hDll = IntPtr.Zero;
         private bool bStartup = false;
+        private object lockObj = new object();
 
         private void getFunc<T>(out T result, string functionName) where T : Delegate
         {
@@ -194,7 +197,7 @@ namespace CompressedFileManager
         }
         // just call once
         // call cleanup and call startup case error detected
-        public void Cleanup()
+        internal void Cleanup()
         {
             if (hDll != IntPtr.Zero)
             {
@@ -207,6 +210,8 @@ namespace CompressedFileManager
             }
 
         }
+        internal void Lock() { Monitor.Enter(lockObj); }
+        internal void Unlock() { Monitor.Exit(lockObj); }
 #if DEBUG
         public static void Test()
         {
@@ -301,27 +306,44 @@ namespace CompressedFileManager
     public class CFM_CompressedFile
     {
         private IntPtr handle = IntPtr.Zero;
-        private IntPtr ptr = IntPtr.Zero;
-        internal IntPtr Ptr { get { return ptr; } }
+        private Dictionary<int, CFM_PreviewFile> previewFileList= new Dictionary<int, CFM_PreviewFile>();
         public List<string> FileList { get; }
         public string FilePath { get; }
         private CFM_CompressedFile(IntPtr handle,string filePath, List<string> fileList)
         {
             this.handle = handle;
-            unsafe {
-                fixed (IntPtr* _ptr =&this.handle)
-                    ptr = (IntPtr)_ptr;
-            }
             FileList = fileList;
             FilePath= filePath;
         }
         ~CFM_CompressedFile()
         {
-            if (ptr != IntPtr.Zero)
+            previewFileList.Clear();
+            GC.Collect();
+
+            if (this.handle != IntPtr.Zero)
             {
                 var dll = CFMDllWrapper.Instance;
-                dll.fn_Close(ptr);
-                ptr = IntPtr.Zero;
+                dll.Lock();
+                for(int i=0;i<100;++i)
+                try
+                {
+                    Debug.WriteLine($"CompressedFile Close : {handle:x}");
+                        unsafe
+                        {
+                            fixed (IntPtr* _ptr = &this.handle)
+                            {
+
+                                dll.fn_Close((IntPtr)_ptr);
+                            }
+                        }
+                        break;
+                }
+                catch (Exception ex){
+                    Debug.WriteLine(ex.Message);
+                }
+
+                dll.Unlock();
+                this.handle = IntPtr.Zero;
             }
         }
         public static void Startup() { CFMDllWrapper.Instance.Startup(); }
@@ -333,12 +355,21 @@ namespace CompressedFileManager
             IntPtr handle = IntPtr.Zero;
             IntPtr ptr;
             unsafe { ptr = (IntPtr)(&handle); }
-            if (dll.fn_Open(ptr, path)== CFMDllWrapper.C_FALSE)
+            dll.Lock();
+            var result = dll.fn_Open(ptr, path);
+            Debug.WriteLine($"CompressedFile Open : {handle:x}"); 
+            dll.Unlock();
+
+            if (result == CFMDllWrapper.C_FALSE)
             {
+                dll.Lock();
                 dll.fn_Close(ptr);
+                dll.Unlock();
                 return null;
             }
+            dll.Lock();
             int fileCount=dll.fn_GetFileCount(ptr);
+            dll.Unlock();
             List<string> fileList = new List<string>();
             for(int i=0; i<fileCount;++i)
             {
@@ -361,16 +392,38 @@ namespace CompressedFileManager
 
             string targetFile = FileList[index];
 
+            CFM_PreviewFile? retval = null;
+            if (previewFileList.TryGetValue(index,out retval))
+            {
+                return retval;
+            }
+
             var dll = CFMDllWrapper.Instance;
             IntPtr handle = IntPtr.Zero;
             IntPtr ptr;
             unsafe { ptr = (IntPtr)(&handle); }
-            if(dll.fn_PreviewFile(this.ptr, ptr, targetFile) ==CFMDllWrapper.C_FALSE)
+            IntPtr ptr_CompressHandle = IntPtr.Zero;
+            unsafe
             {
+                fixed (IntPtr* _ptr_CompressHandle = &this.handle)
+                {
+                    ptr_CompressHandle=(IntPtr)(_ptr_CompressHandle);
+                }
+            }
+            dll.Lock();
+            var result_Preview = dll.fn_PreviewFile(ptr_CompressHandle, ptr, targetFile);
+            Debug.WriteLine($"Preview Open : {handle:x}"); 
+            dll.Unlock();
+            if (result_Preview == CFMDllWrapper.C_FALSE)
+            {
+                dll.Lock();
                 dll.fn_Preview_Release(ptr);
+                dll.Unlock();
                 return null;
             }
+            dll.Lock();
             int _type = dll.fn_Preview_GetType(ptr);
+            dll.Unlock();
             CFM_PreviewFile.EType type;
             switch(_type)
             {
@@ -380,30 +433,64 @@ namespace CompressedFileManager
                 default: type = CFM_PreviewFile.EType.Error; break;
             }
             StringBuilder sb = new StringBuilder(CFMDllWrapper.DefaultBufferCount);
-            if(dll.fn_Preview_GetTmpPath(ptr,sb,CFMDllWrapper.DefaultBufferCount) == CFMDllWrapper.C_FALSE)
+            dll.Lock();
+            var result_GetTempPath = dll.fn_Preview_GetTmpPath(ptr, sb, CFMDllWrapper.DefaultBufferCount);
+            dll.Unlock();
+            if (result_GetTempPath == CFMDllWrapper.C_FALSE)
             {
+                dll.Lock();
                 dll.fn_Preview_Release(ptr);
+                dll.Unlock();
                 return null;
             }
-            return new CFM_PreviewFile(this, handle, targetFile, sb.ToString(), type);
+            retval = new CFM_PreviewFile(this.handle, handle, targetFile, sb.ToString(), type);
+            if(retval != null)
+            {
+                previewFileList.Add(index, retval);
+            }
+
+            return retval;
         }
         public bool DeleteFile(int index)
         {
+            IntPtr ptr = IntPtr.Zero;
+            unsafe
+            {
+                fixed (IntPtr* _ptr = &this.handle)
+                {
+                    ptr = (IntPtr)(_ptr);
+                }
+            }
             if (index >= FileList.Count || index < 0)
                 return false;
             string targetFile = FileList[index];
 
             var dll = CFMDllWrapper.Instance;
-            return dll.fn_DeleteFile(ptr, targetFile) != CFMDllWrapper.C_FALSE;
+            dll.Lock();
+            var result = dll.fn_DeleteFile(ptr, targetFile);
+            dll.Unlock();
+
+            return result != CFMDllWrapper.C_FALSE;
         }
         public bool RevertDeleteFile(int index)
         {
+            IntPtr ptr = IntPtr.Zero;
+            unsafe
+            {
+                fixed (IntPtr* _ptr = &this.handle)
+                {
+                    ptr = (IntPtr)(_ptr);
+                }
+            }
             if (index >= FileList.Count || index < 0)
                 return false;
             string targetFile = FileList[index];
 
             var dll = CFMDllWrapper.Instance;
-            return dll.fn_RevertDeleteFile(ptr, targetFile) != CFMDllWrapper.C_FALSE;
+            dll.Lock();
+            var result = dll.fn_RevertDeleteFile(ptr, targetFile);
+            dll.Unlock();
+            return result != CFMDllWrapper.C_FALSE;
         }
         public bool Recompress()
         {
@@ -411,37 +498,63 @@ namespace CompressedFileManager
         }
         public bool Recompress(string targetPath)
         {
+            IntPtr ptr = IntPtr.Zero;
+            unsafe
+            {
+                fixed (IntPtr* _ptr = &this.handle)
+                {
+                    ptr = (IntPtr)(_ptr);
+                }
+            }
             var dll = CFMDllWrapper.Instance;
-            return dll.fn_Recompress(ptr, targetPath) != CFMDllWrapper.C_FALSE; ;
+            dll.Lock();
+            var result = dll.fn_Recompress(ptr, targetPath);
+            dll.Unlock();
+            return result != CFMDllWrapper.C_FALSE; ;
         }
     }
     public class CFM_PreviewFile
     {
         public enum EType { Error,Image,Unknown,}
         private IntPtr handle = IntPtr.Zero;
-        private IntPtr ptr = IntPtr.Zero;
-        CFM_CompressedFile compressedFile;
+        private IntPtr compressedFileHandle;
         public string FileName { get; }
         public string TmpPath { get; }
         public EType Type { get; }
 
-        internal CFM_PreviewFile(CFM_CompressedFile compressedFile, IntPtr handle, string fileName, string tmpPath, EType type)
+        internal CFM_PreviewFile(IntPtr compressedFileHandle, IntPtr handle, string fileName, string tmpPath, EType type)
         {
-            this.compressedFile = compressedFile;
+            this.compressedFileHandle = compressedFileHandle;
             this.handle = handle;
-            unsafe{
-                fixed (IntPtr* _ptr = &this.handle)
-                    ptr = (IntPtr)_ptr;
-            }
             FileName = fileName;
             TmpPath = tmpPath;
+            Type = type;
         }
         ~CFM_PreviewFile()
         {
+            IntPtr ptr = IntPtr.Zero;
+            unsafe
+            {
+                fixed (IntPtr* _ptr = &this.handle)
+                {
+                    ptr = (IntPtr)(_ptr);
+                }
+            }
             if (ptr != IntPtr.Zero)
             {
                 var dll = CFMDllWrapper.Instance;
-                dll.fn_Preview_Release(ptr);
+
+                dll.Lock();
+                Debug.WriteLine($"Preview Close : {handle:x}");
+
+                unsafe
+                {
+                    fixed (IntPtr* _ptr = &this.handle)
+                    {
+                        dll.fn_Preview_Release((IntPtr)_ptr);
+                    }
+                }
+                dll.Unlock();
                 ptr = IntPtr.Zero;
             }
         }

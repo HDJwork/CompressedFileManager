@@ -28,7 +28,6 @@
         /// </summary>
         private void InitializeComponent()
         {
-            //TreeView treeView;
             pictureBox = new PictureBox();
             button_Open = new Button();
             button_Recompress = new Button();
@@ -39,7 +38,9 @@
             button_Delete = new Button();
             button_RevertDelete = new Button();
             panel_Button = new Panel();
-            treeView = new TreeView();
+            listView = new ListView();
+            textBox_TempFileName = new TextBox();
+            textBox_FileName = new TextBox();
             ((System.ComponentModel.ISupportInitialize)pictureBox).BeginInit();
             panel.SuspendLayout();
             panel_Button.SuspendLayout();
@@ -106,9 +107,9 @@
             // panel
             // 
             panel.Controls.Add(pictureBox);
-            panel.Location = new Point(279, 12);
+            panel.Location = new Point(279, 44);
             panel.Name = "panel";
-            panel.Size = new Size(500, 377);
+            panel.Size = new Size(500, 345);
             panel.TabIndex = 7;
             // 
             // button_Delete
@@ -131,15 +132,6 @@
             button_RevertDelete.UseVisualStyleBackColor = true;
             button_RevertDelete.Click += button_RevertDelete_Click;
             // 
-            // treeView
-            // 
-            treeView.Location = new Point(15, 12);
-            treeView.Name = "treeView";
-            treeView.Size = new Size(258, 377);
-            treeView.TabIndex = 0;
-            treeView.AfterSelect += treeView_AfterSelect;
-            treeView.KeyDown += treeView_KeyDown;
-            // 
             // panel_Button
             // 
             panel_Button.Controls.Add(button_RevertDelete);
@@ -154,13 +146,40 @@
             panel_Button.Size = new Size(797, 60);
             panel_Button.TabIndex = 8;
             // 
+            // listView
+            // 
+            listView.AutoArrange = false;
+            listView.Location = new Point(17, 44);
+            listView.Name = "listView";
+            listView.Size = new Size(249, 341);
+            listView.TabIndex = 9;
+            listView.UseCompatibleStateImageBehavior = false;
+            // 
+            // textBox_TempFileName
+            // 
+            textBox_TempFileName.Location = new Point(275, 12);
+            textBox_TempFileName.Name = "textBox_TempFileName";
+            textBox_TempFileName.ReadOnly = true;
+            textBox_TempFileName.Size = new Size(507, 23);
+            textBox_TempFileName.TabIndex = 10;
+            // 
+            // textBox_FileName
+            // 
+            textBox_FileName.Location = new Point(17, 15);
+            textBox_FileName.Name = "textBox_FileName";
+            textBox_FileName.ReadOnly = true;
+            textBox_FileName.Size = new Size(249, 23);
+            textBox_FileName.TabIndex = 11;
+            // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(textBox_FileName);
+            Controls.Add(textBox_TempFileName);
+            Controls.Add(listView);
             Controls.Add(panel);
-            Controls.Add(treeView);
             Controls.Add(panel_Button);
             Name = "MainForm";
             Text = "CompressedFileManager";
@@ -169,11 +188,10 @@
             panel.ResumeLayout(false);
             panel_Button.ResumeLayout(false);
             ResumeLayout(false);
+            PerformLayout();
         }
 
         #endregion
-
-        private TreeView treeView;
         private PictureBox pictureBox;
         private Button button_Open;
         private Button button_Recompress;
@@ -184,5 +202,8 @@
         private Button button_Delete;
         private Button button_RevertDelete;
         private Panel panel_Button;
+        private ListView listView;
+        private TextBox textBox_TempFileName;
+        private TextBox textBox_FileName;
     }
 }

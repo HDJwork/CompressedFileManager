@@ -17,6 +17,8 @@ namespace CompressedFileManager
     {
         private CFM_CompressedFile? compressedFile = null;
         private string lastFile = "";
+        private string currentImage = "";
+        private int lastSelectIndex = -1;
         struct SizeContainer
         {
             public int Main_Top;
@@ -24,7 +26,7 @@ namespace CompressedFileManager
             public int Bottom_TopOffset;
             public int Main_RightOffset;
         }
-        private SizeContainer sizeContainer=new SizeContainer();
+        private SizeContainer sizeContainer = new SizeContainer();
 
         public MainForm()
         {
@@ -32,37 +34,60 @@ namespace CompressedFileManager
             this.AllowDrop = true; // 폼이 드래그 앤 드롭을 받을 수 있도록 설정
             this.DragEnter += MainForm_DragEnter; // 드래그 진입 이벤트 핸들러 등록
             this.DragDrop += MainForm_DragDrop; // 드롭 이벤트 핸들러 등록
+            this.listView.View = View.Details;
+            this.listView.HeaderStyle = ColumnHeaderStyle.None;
+            this.listView.FullRowSelect = true;
+            this.listView.Columns.Add("", -2);
             updateUI();
             setSizeContainer();
         }
         private bool Open(string targetPath)
         {
-            pictureBox.Image = null;
+            setClose();
+            //pictureBox.Image = null;
             compressedFile = CFM_CompressedFile.Open(targetPath);
             if (compressedFile == null)
                 return false;
             lastFile = targetPath;
-            treeView.Nodes.Clear();
-            GC.Collect();
-            TreeNode root = new TreeNode(Path.GetFileName(targetPath));
+            textBox_FileName.Text = lastFile;
+            //Regacy TreeView
+            //treeView.Nodes.Clear();
+            //GC.Collect();
+            //TreeNode root = new TreeNode(Path.GetFileName(targetPath));
+            //foreach (var file in compressedFile.FileList)
+            //{
+            //    root.Nodes.Add(file);
+            //}
+            //treeView.Nodes.Add(root);
+            //root.Toggle();
+
+            //GC.Collect();
             foreach (var file in compressedFile.FileList)
             {
-                root.Nodes.Add(file);
+                listView.Items.Add(file);
             }
-            treeView.Nodes.Add(root);
-            root.Toggle();
-
             updateUI();
             return true;
         }
         private void setClose()
         {
-            pictureBox.Image = null;
             compressedFile = null;
-            treeView.Nodes.Clear();
+            //Regacy TreeView
+            //treeView.Nodes.Clear();
+            listView.Items.Clear();
+            textBox_FileName.Text = "";
+            setClearTempImage();
             GC.Collect();
 
             updateUI();
+        }
+        private void setClearTempImage()
+        {
+            lastSelectIndex = -1;
+            pictureBox.Image = null;
+            currentImage = "";
+            textBox_TempFileName.Text = "";
+
         }
 
         private bool isOpen { get { return compressedFile != null; } }
@@ -72,15 +97,17 @@ namespace CompressedFileManager
             bool bOpened = isOpen;
             if (!bOpened)
             {
-                treeView.Nodes.Clear();
-                pictureBox.Image = null;
+                listView.Items.Clear();
+                setClearTempImage();
             }
             button_Close.Enabled = bOpened;
             button_Recompress.Enabled = bOpened;
             button_RecompressAs.Enabled = bOpened;
             button_Delete.Enabled = bOpened;
             button_RevertDelete.Enabled = bOpened;
-            treeView.Enabled = bOpened;
+            //Regacy TreeView
+            //treeView.Enabled = bOpened;
+            listView.Enabled = bOpened;
             pictureBox.Enabled = bOpened;
         }
         private void selectItem(int index)
@@ -107,6 +134,8 @@ namespace CompressedFileManager
         {
             this.Invoke((string path) =>
             {
+                if (currentImage == path)
+                    return;
                 try
                 {
                     if (Path.GetExtension(path) == ".webp")
@@ -126,6 +155,10 @@ namespace CompressedFileManager
                     {
                         pictureBox.Image = System.Drawing.Image.FromFile(path);
                     }
+                    currentImage = path;
+
+                    textBox_TempFileName.Text = Path.GetFileName(path);
+
                     pictureBox.SizeMode = PictureBoxSizeMode.Zoom;
                     pictureBox.Dock = DockStyle.Fill;
                 }
@@ -141,9 +174,12 @@ namespace CompressedFileManager
         }
         private void setSizeContainer()
         {
-            sizeContainer.Main_Top=treeView.Top;
-            sizeContainer.Main_BottomOffset = this.Height -treeView.Bottom;
-            sizeContainer.Bottom_TopOffset=this.Height-panel_Button.Top;
+            //Regacy TreeView
+            //sizeContainer.Main_Top=treeView.Top;
+            //sizeContainer.Main_BottomOffset = this.Height -treeView.Bottom;
+            sizeContainer.Main_Top = listView.Top;
+            sizeContainer.Main_BottomOffset = this.Height - listView.Bottom;
+            sizeContainer.Bottom_TopOffset = this.Height - panel_Button.Top;
             sizeContainer.Main_RightOffset = this.Width - panel.Right;
 
         }
@@ -151,15 +187,24 @@ namespace CompressedFileManager
         {
             panel_Button.Top = this.Height - sizeContainer.Bottom_TopOffset;
 
-            treeView.Top = sizeContainer.Main_Top;
+            //Regacy TreeView
+            //treeView.Top = sizeContainer.Main_Top;
+            listView.Top = sizeContainer.Main_Top;
             panel.Top = sizeContainer.Main_Top;
 
             int mainHeight = this.Height - sizeContainer.Main_BottomOffset - sizeContainer.Main_Top;
-            treeView.Height= mainHeight;
-            panel.Left = treeView.Right + 10;
+            //Regacy TreeView
+            //treeView.Height= mainHeight;
+            //panel.Left = treeView.Right + 10;
+            listView.Height = mainHeight;
+            panel.Left = listView.Right + 10;
 
-            panel.Width = this.Width - sizeContainer.Main_RightOffset- panel.Left;
+            panel.Width = this.Width - sizeContainer.Main_RightOffset - panel.Left;
             panel.Height = mainHeight;
+
+            textBox_TempFileName.Left = panel.Left;
+            textBox_TempFileName.Width = this.Width - sizeContainer.Main_RightOffset - panel.Left;
+
         }
 
         private void MainForm_DragEnter(object? sender, DragEventArgs e)
@@ -219,15 +264,35 @@ namespace CompressedFileManager
             }
         }
 
-        private void treeView_AfterSelect(object sender, TreeViewEventArgs e)
+        //Regacy TreeView
+        //private void treeView_AfterSelect(object sender, TreeViewEventArgs e)
+        //{
+        //    if (treeView.SelectedNode == null)
+        //        return;
+        //    if (e.Node == null)
+        //        return;
+        //    if (e.Node == treeView.Nodes[0])
+        //        return;
+        //    selectItem(e.Node.Index);
+        //}
+        private void listView_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (treeView.SelectedNode == null)
+
+            if (listView.SelectedItems.Count <= 0)
+            {
+                setClearTempImage();
                 return;
-            if (e.Node == null)
+            }
+            if (listView.SelectedItems[0] == null)
+            {
+                setClearTempImage();
                 return;
-            if (e.Node == treeView.Nodes[0])
-                return;
-            selectItem(e.Node.Index);
+            }
+            if (lastSelectIndex != listView.SelectedIndices[0])
+            {
+                lastSelectIndex = listView.SelectedIndices[0];
+                selectItem(listView.SelectedIndices[0]);
+            }
         }
 
         private void button_Exit_Click(object sender, EventArgs e)
@@ -294,59 +359,110 @@ namespace CompressedFileManager
         {
             if (compressedFile == null)
                 return;
-            if (treeView.SelectedNode == null)
-                return;
-            var node = treeView.SelectedNode;
-            if (node == treeView.Nodes[0])
-                return;
-            if (node.ForeColor == System.Drawing.Color.WhiteSmoke)
-                return;
-            node.ForeColor = System.Drawing.Color.WhiteSmoke;
-            if (!compressedFile.DeleteFile(node.Index))
-            {
-                MessageBox.Show("Delete Fail!");
+            //Regacy TreeView
+            //if (treeView.SelectedNode == null)
+            //    return;
+            //var node = treeView.SelectedNode;
+            //if (node == treeView.Nodes[0])
+            //    return;
+            //if (node.ForeColor == System.Drawing.Color.WhiteSmoke)
+            //    return;
+            //node.ForeColor = System.Drawing.Color.WhiteSmoke;
+            //if (!compressedFile.DeleteFile(node.Index))
+            //{
+            //    MessageBox.Show("Delete Fail!");
 
+            //}
+            if (listView.SelectedIndices.Count <= 0)
+                return;
+            foreach (int index in listView.SelectedIndices)
+            {
+                var item = listView.Items[index];
+                if (item.ForeColor == System.Drawing.Color.WhiteSmoke)
+                    continue;
+                item.ForeColor = System.Drawing.Color.WhiteSmoke;
+                if (!compressedFile.DeleteFile(index))
+                {
+                    MessageBox.Show("Delete Fail!");
+                    break;
+                }
             }
+            //listView.Focus();
+            listView.SelectedIndices.Clear();
+            listView.Refresh();
         }
 
         private void button_RevertDelete_Click(object sender, EventArgs e)
         {
             if (compressedFile == null)
                 return;
-            if (treeView.SelectedNode == null)
+            //Regacy TreeView
+            //if (treeView.SelectedNode == null)
+            //    return;
+            //var node = treeView.SelectedNode;
+            //if (node == treeView.Nodes[0])
+            //    return;
+            //if (node.ForeColor != System.Drawing.Color.WhiteSmoke)
+            //    return;
+            //node.ForeColor = System.Drawing.Color.Black;
+            //if (!compressedFile.RevertDeleteFile(node.Index))
+            //{
+            //    MessageBox.Show("RevertDeleteFile Fail!");
+            //
+            //}
+            if (listView.SelectedIndices.Count <= 0)
                 return;
-            var node = treeView.SelectedNode;
-            if (node == treeView.Nodes[0])
-                return;
-            if (node.ForeColor != System.Drawing.Color.WhiteSmoke)
-                return;
-            node.ForeColor = System.Drawing.Color.Black;
-            if (!compressedFile.RevertDeleteFile(node.Index))
+            foreach (int index in listView.SelectedIndices)
             {
-                MessageBox.Show("RevertDeleteFile Fail!");
-
+                var item = listView.Items[index];
+                if (item.ForeColor != System.Drawing.Color.WhiteSmoke)
+                    continue;
+                item.ForeColor = System.Drawing.Color.Black;
+                if (!compressedFile.RevertDeleteFile(index))
+                {
+                    MessageBox.Show("RevertDeleteFile Fail!");
+                    break;
+                }
             }
+            listView.SelectedIndices.Clear();
+            listView.Refresh();
         }
 
-        private void treeView_KeyDown(object sender, KeyEventArgs e)
+        private void listView_KeyDown(object sender, KeyEventArgs e)
         {
             if (compressedFile == null)
                 return;
-            if (treeView.SelectedNode == null)
+            //Regacy TreeView
+            //if (treeView.SelectedNode == null)
+            //    return;
+            //if (e.KeyCode == Keys.Delete)
+            //{
+            //    var node = treeView.SelectedNode;
+            //    if (node == treeView.Nodes[0])
+            //        return;
+            //    if (node.ForeColor == System.Drawing.Color.WhiteSmoke)
+            //        return;
+            //    node.ForeColor = System.Drawing.Color.WhiteSmoke;
+            //    if (!compressedFile.DeleteFile(node.Index))
+            //    {
+            //        MessageBox.Show("Delete Fail!");
+            //    }
+            //}
+            if (listView.SelectedIndices.Count <= 0)
                 return;
-
             if (e.KeyCode == Keys.Delete)
             {
-                var node = treeView.SelectedNode;
-                if (node == treeView.Nodes[0])
-                    return;
-                if (node.ForeColor == System.Drawing.Color.WhiteSmoke)
-                    return;
-                node.ForeColor = System.Drawing.Color.WhiteSmoke;
-                if (!compressedFile.DeleteFile(node.Index))
+                foreach (int index in listView.SelectedIndices)
                 {
-                    MessageBox.Show("Delete Fail!");
-
+                    var item = listView.Items[index];
+                    if (item.ForeColor != System.Drawing.Color.WhiteSmoke)
+                        continue;
+                    item.ForeColor = System.Drawing.Color.Black;
+                    if (!compressedFile.RevertDeleteFile(index))
+                    {
+                        MessageBox.Show("RevertDeleteFile Fail!");
+                        break;
+                    }
                 }
             }
         }

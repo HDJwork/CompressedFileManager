@@ -158,7 +158,8 @@
             // 
             // textBox_TempFileName
             // 
-            textBox_TempFileName.Location = new Point(275, 12);
+            textBox_TempFileName.Enabled = false;
+            textBox_TempFileName.Location = new Point(275, 15);
             textBox_TempFileName.Name = "textBox_TempFileName";
             textBox_TempFileName.ReadOnly = true;
             textBox_TempFileName.Size = new Size(507, 23);
@@ -166,6 +167,7 @@
             // 
             // textBox_FileName
             // 
+            textBox_FileName.Enabled = false;
             textBox_FileName.Location = new Point(17, 15);
             textBox_FileName.Name = "textBox_FileName";
             textBox_FileName.ReadOnly = true;

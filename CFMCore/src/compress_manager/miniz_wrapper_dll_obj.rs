@@ -93,19 +93,38 @@ impl MinizWrapperDllObj{
         //use winapi::um::libloaderapi::{GetModuleHandleW, GetProcAddress, LoadLibraryW, FreeLibrary};
         use winapi::um::libloaderapi::LoadLibraryW;   
         
+    
         // DLL 파일 경로
-        let dll_path = "ref/miniz_DLL.dll";
-        
-        // DLL 파일 경로를 Wide 문자열로 변환
-        let dll_path_wide: Vec<u16> = OsStr::new(dll_path)
-            .encode_wide()
-            .chain(std::iter::once(0))
-            .collect();
+        let dll_filename = "miniz_DLL.dll";
+        let mut dll_handle :*mut winapi::shared::minwindef::HINSTANCE__  = std::ptr::null_mut();
+        let mut dll_path_list: Vec<String> = Vec::new() ;
+        #[cfg(debug_assertions)]
+        {
+            dll_path_list.push(String::from("../ref/debug/")+dll_filename);
+            dll_path_list.push(String::from("ref/")+dll_filename);
+            dll_path_list.push(String::from(dll_filename));
+        }
+        #[cfg(not(debug_assertions))]
+        {
+            dll_path_list.push(String::from("ref/")+dll_filename);
+            dll_path_list.push(String::from("../ref/release/")+dll_filename);
+            dll_path_list.push(String::from(dll_filename));
+        }
+        let mut bSuccess = false;
+        for path in dll_path_list{
+            // DLL 파일 경로를 Wide 문자열로 변환
+            let dll_path_wide: Vec<u16> = OsStr::new(path.as_str())
+                .encode_wide()
+                .chain(std::iter::once(0))
+                .collect();
 
-        //------------------------------------- DLL Load --------------------------------------
-        // 
-        let dll_handle = unsafe { LoadLibraryW(dll_path_wide.as_ptr()) };
-        if dll_handle.is_null() {
+            dll_handle = unsafe { LoadLibraryW(dll_path_wide.as_ptr()) };
+            if !dll_handle.is_null() {
+                bSuccess = true;
+                break;
+            }
+        }
+        if !bSuccess {
             println!("DLL Load Fail!");
             panic!("DLL Load Fail!");
         }

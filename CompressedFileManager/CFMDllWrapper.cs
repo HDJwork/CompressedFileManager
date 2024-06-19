@@ -55,7 +55,7 @@ namespace CompressedFileManager
 #pragma warning restore 8618
         #endregion
 
-        private string targetDllPath = "ref/CFMCore.dll";
+        private string targetDllFileName = "CFMCore.dll";
 
         //private static readonly Destructor Finalise = new Destructor();
         //private sealed class Destructor
@@ -167,23 +167,47 @@ namespace CompressedFileManager
         {
             if (bStartup)
                 return true;
-            string targetDllPath = this.targetDllPath;
-#if DEBUG
-            DirectoryInfo currentDir = new DirectoryInfo(Environment.CurrentDirectory);
-#pragma warning disable 8602
-            Environment.CurrentDirectory = currentDir.Parent.Parent.Parent.FullName;
-#pragma warning restore 8602
-            targetDllPath = Path.Combine("../../../../", targetDllPath);
-#endif
-            // DLL을 로드
             if (hDll != IntPtr.Zero)
             {
                 return true;
                 //Cleanup();
             }
 
-            hDll = LoadLibrary(targetDllPath);
-            if (hDll == IntPtr.Zero)
+            // DLL을 로드
+            List<string> dllPathList = new List<string>();
+
+            DirectoryInfo currentDir = new DirectoryInfo(Environment.CurrentDirectory);
+            //project dir(CompressFileManager/CompressFileManager)
+            string targetDir = currentDir.Parent?.Parent?.Parent?.FullName ?? "";
+
+            //for vs debugger run
+            if(targetDir!="")
+            {
+                string dir = Path.GetFileName(targetDir) ?? "";
+                if (dir == "CompressedFileManager")
+                    Environment.CurrentDirectory = targetDir;
+            }
+#if DEBUG
+            dllPathList.Add("../ref/debug/" + this.targetDllFileName);
+            dllPathList.Add("ref/" + this.targetDllFileName);
+#else
+
+            dllPathList.Add("ref/" + this.targetDllFileName);
+            dllPathList.Add("../ref/release" + this.targetDllFileName);
+
+#endif
+            bool bScuccess = false;
+            foreach(string dllPath in dllPathList)
+            {
+
+                hDll = LoadLibrary(dllPath);
+                if (hDll != IntPtr.Zero)
+                {
+                    bScuccess = true;
+                    break;
+                }
+            }
+            if (!bScuccess)
             {
                 Debug.WriteLine("Failed to load DLL");
                 return false;

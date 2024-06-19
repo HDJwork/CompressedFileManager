@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using System.Xml.Linq;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using System.Collections.Concurrent;
 
 namespace CompressedFileManager
 {
@@ -19,6 +20,10 @@ namespace CompressedFileManager
         private string lastFile = "";
         private string currentImage = "";
         private int lastSelectIndex = -1;
+        private ConcurrentQueue<int> selectionChangedQueue = new ConcurrentQueue<int>();
+        private volatile bool bExit = false;
+        private Task selectionUpdater;
+
         struct SizeContainer
         {
             public int Main_Top;
@@ -36,10 +41,18 @@ namespace CompressedFileManager
             this.DragDrop += MainForm_DragDrop; // 드롭 이벤트 핸들러 등록
             this.listView.View = View.Details;
             this.listView.HeaderStyle = ColumnHeaderStyle.None;
-            this.listView.FullRowSelect = true;
+            //this.listView.FullRowSelect = true;
+            //this.listView.Columns.Add("", 10);
             this.listView.Columns.Add("", -2);
+            selectionUpdater = new Task(()=>{ tempImageUpdateFunc(); });
+            selectionUpdater.Start();
             updateUI();
             setSizeContainer();
+        }
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            bExit = true;
+            selectionUpdater.Wait();
         }
         private bool Open(string targetPath)
         {
@@ -290,8 +303,27 @@ namespace CompressedFileManager
             }
             if (lastSelectIndex != listView.SelectedIndices[0])
             {
-                lastSelectIndex = listView.SelectedIndices[0];
-                selectItem(listView.SelectedIndices[0]);
+                selectionChangedQueue.Enqueue(listView.SelectedIndices[0]);
+            }
+        }
+        private void tempImageUpdateFunc()
+        {
+            //deferred process for multiselect case selectItem function multiple call 
+            while (!bExit)
+            {
+                System.Threading.Thread.Sleep(33);
+                int index = -1;
+                if (selectionChangedQueue.IsEmpty)
+                    continue;
+
+                System.Threading.Thread.Sleep(33);
+                while (!selectionChangedQueue.IsEmpty)
+                {
+                    selectionChangedQueue.TryDequeue(out index);
+                    System.Threading.Thread.Sleep(1);
+                }
+                if (index >= 0)
+                    this.Invoke(() => { selectItem(index); });
             }
         }
 
@@ -471,5 +503,6 @@ namespace CompressedFileManager
         {
             setControlSize();
         }
+
     }
 }

@@ -154,6 +154,7 @@
             listView.Size = new Size(249, 341);
             listView.TabIndex = 9;
             listView.UseCompatibleStateImageBehavior = false;
+            listView.SelectedIndexChanged += listView_SelectedIndexChanged;
             // 
             // textBox_TempFileName
             // 
@@ -183,6 +184,7 @@
             Controls.Add(panel_Button);
             Name = "MainForm";
             Text = "CompressedFileManager";
+            FormClosing += MainForm_FormClosing;
             Resize += MainForm_Resize;
             ((System.ComponentModel.ISupportInitialize)pictureBox).EndInit();
             panel.ResumeLayout(false);

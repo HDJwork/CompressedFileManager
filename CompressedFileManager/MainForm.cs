@@ -11,9 +11,12 @@ using SixLabors.ImageSharp.Formats.Png;
 using System.Xml.Linq;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using System.Collections.Concurrent;
+using System.Reflection;
+using System.Runtime.Versioning;
 
 namespace CompressedFileManager
 {
+    [SupportedOSPlatform("windows")]
     public partial class MainForm : Form
     {
         private CFM_CompressedFile? compressedFile = null;
@@ -36,6 +39,10 @@ namespace CompressedFileManager
         public MainForm()
         {
             InitializeComponent();
+            Version? version = Assembly.GetExecutingAssembly().GetName().Version;
+            if(version != null)
+                this.Text = "CompressFileManager v" + version.Major + "." + version.Minor + "." + version.Build; //change form title
+            
             this.AllowDrop = true; // 폼이 드래그 앤 드롭을 받을 수 있도록 설정
             this.DragEnter += MainForm_DragEnter; // 드래그 진입 이벤트 핸들러 등록
             this.DragDrop += MainForm_DragDrop; // 드롭 이벤트 핸들러 등록
@@ -48,6 +55,7 @@ namespace CompressedFileManager
             selectionUpdater.Start();
             updateUI();
             setSizeContainer();
+
         }
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {

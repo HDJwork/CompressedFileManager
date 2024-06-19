@@ -1,5 +1,8 @@
+using System.Runtime.Versioning;
+
 namespace CompressedFileManager
 {
+    [SupportedOSPlatform("windows")]
     internal static class Program
     {
         /// <summary>
